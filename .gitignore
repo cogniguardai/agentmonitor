@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build / dist
+build/
+dist/
+*.spec
+
+# Virtualenvs
+ai-env/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Local databases / logs / backups (regenerate on app startup)
+*.db
+*.sqlite
+*.sqlite-journal
+*.bak
+agent_monitor.db
+agent_monitor/data/*.db
+agent_monitor/data/*.sqlite*
+logs/
+
+# Smoke artifacts (transient test files)
+_tmp_*.py
+_tmp_*.png
+_tmp_*.json
+_tmp_*.txt
+
+# Frozen-app build artifacts
+*.exe
+agent-monitor.spec

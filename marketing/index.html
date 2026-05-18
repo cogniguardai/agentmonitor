@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AgentMonitor by CogniGuard AI — See what your AI agent actually did.</title>
+
+  <!-- SEO ----------------------------------------------------------- -->
+  <meta name="description"
+        content="AgentMonitor is a flight recorder for AI agents. It records every prompt, tool call, file touched and dollar spent — so when your agent does something weird, you can rewind and see exactly what happened. Free, local-first, no signup. Made by CogniGuard AI." />
+  <meta name="keywords"
+        content="AI agent monitoring, agent observability, LLM observability, AI flight recorder, agent debugging, Claude Code, Cursor, Anthropic, OpenAI, LangChain, AutoGen, agent replay, prompt logging, CogniGuard AI" />
+  <meta name="author" content="CogniGuard AI" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="canonical" href="https://cogniguardai.com/" />
+
+  <!-- Open Graph (Facebook, LinkedIn, Discord, Slack, …) ------------- -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="CogniGuard AI" />
+  <meta property="og:title"       content="AgentMonitor — See what your AI agent actually did." />
+  <meta property="og:description" content="A flight recorder for AI agents by CogniGuard AI. Records every prompt, tool call, file touched and dollar spent — so when your agent does something weird, you can rewind and see exactly what happened." />
+  <meta property="og:url"         content="https://cogniguardai.com/" />
+  <meta property="og:image"       content="https://cogniguardai.com/og.png" />
+  <meta property="og:image:alt"   content="AgentMonitor dashboard — dark UI with amber accents showing a recorded agent run, prompt, tools called and cost." />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / X --------------------------------------------------- -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="AgentMonitor — See what your AI agent actually did." />
+  <meta name="twitter:description" content="A flight recorder for AI agents by CogniGuard AI. Records every prompt, tool call, file touched and dollar spent. Local-first. Free." />
+  <meta name="twitter:image"       content="https://cogniguardai.com/og.png" />
+  <meta name="twitter:image:alt"   content="AgentMonitor dashboard screenshot" />
+
+  <!-- Structured data --------------------------------------------------
+       Two graphs: the Organization (CogniGuard AI) is the publisher of
+       the SoftwareApplication (AgentMonitor). Google merges both into
+       the knowledge panel. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://cogniguardai.com/#org",
+        "name": "CogniGuard AI",
+        "url": "https://cogniguardai.com/",
+        "logo": "https://cogniguardai.com/og.png",
+        "description": "CogniGuard AI builds developer tools for the AI-agent era. AgentMonitor is our flagship product."
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "AgentMonitor",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "A flight recorder for AI agents. Records every prompt, tool call, file touched and dollar spent — so when your agent does something weird, you can rewind and see exactly what happened.",
+        "url": "https://cogniguardai.com/",
+        "publisher": { "@id": "https://cogniguardai.com/#org" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    ]
+  }
+  </script>
+
+  <!-- Favicon (inline SVG, no extra request) ------------------------ -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23000'/><circle cx='16' cy='16' r='6' fill='none' stroke='%23ff9a3c' stroke-width='2.5'/><circle cx='16' cy='16' r='2' fill='%23ff9a3c'/></svg>" />
+
+  <!-- Inter (display + body) for cursor-quality typography. Preconnect
+       saves ~100-200ms on first paint. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+
+  <style>
+    /* AgentMonitor marketing — visual language matches the in-app
+       dashboard (Claude Board black + amber). Single-file, no build,
+       no external deps except a Google Font (optional). */
+    :root {
+      --bg:           #000;
+      --bg-1:         #0a0a0a;
+      --bg-2:         #111114;
+      --surface:      #111114;
+      --surface-2:    #17171c;
+      --border:       #1f1f25;
+      --border-2:     #2a2a32;
+      --text:         #e9e9ea;
+      --text-mute:    #8a8a92;
+      --text-dim:     #5b5b63;
+      --accent:       #ff9a3c;
+      --accent-soft:  #ff9a3c22;
+      --accent-edge:  #ff9a3c66;
+      --good:         #4ed18a;
+      --warn:         #ffb84a;
+      --bad:          #ff6961;
+      --info:         #6aa9ff;
+      --mono: "JetBrains Mono", "SF Mono", "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      /* CSS feature-flag for Inter optical-sizing on supported browsers. */
+      font-optical-sizing: auto;
+      font-feature-settings: "cv11", "ss01", "ss03";
+    }
+    *  { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    /* Selection -- amber on black, never white. */
+    ::selection { background: var(--accent); color: #1a0e00; }
+    /* Focus outline -- amber square (better than the browser default blue). */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre { font-family: var(--mono); }
+
+    /* ---------- shell ---------- */
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 72px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: 0; }
+    h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; }
+    h2 { font-size: 26px; margin: 0 0 24px 0; }
+    h3 { font-size: 17px; margin: 0 0 8px 0; }
+    p  { color: var(--text-mute); margin: 0 0 12px 0; }
+    .muted { color: var(--text-mute); }
+    .mono  { font-family: var(--mono); }
+
+    /* ---------- header ---------- */
+    header.site {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: saturate(160%) blur(10px);
+      -webkit-backdrop-filter: saturate(160%) blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .site-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; color: var(--text);
+    }
+    .brand-dot {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      background: #000;
+      border: 1px solid var(--accent-edge);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .brand-dot::after {
+      content: ""; width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-edge);
+    }
+    .nav { display: flex; gap: 22px; align-items: center; font-size: 13.5px; }
+    .nav a { color: var(--text-mute); }
+    .nav a:hover { color: var(--text); text-decoration: none; }
+    .nav .cta {
+      padding: 7px 14px; border-radius: 5px;
+      background: var(--accent); color: #1a0e00;
+      font-weight: 500;
+    }
+    .nav .cta:hover { background: #ffb066; }
+    @media (max-width: 640px) {
+      .nav a:not(.cta) { display: none; }
+    }
+
+    /* ---------- hero ---------- */
+    .hero {
+      text-align: center;
+      padding: 88px 0 56px 0;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 5px 12px;
+      border: 1px solid var(--accent-edge);
+      background: var(--accent-soft);
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 1.05;
+      margin: 0 0 18px 0;
+      letter-spacing: -0.025em;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero-sub {
+      max-width: 640px; margin: 0 auto 32px auto;
+      font-size: 17px;
+      color: var(--text-mute);
+      line-height: 1.55;
+    }
+    .hero-cta {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 22px;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 14.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 80ms ease, background 120ms ease,
+                  border-color 120ms ease, color 120ms ease;
+    }
+    .btn-primary {
+      background: var(--accent); color: #1a0e00;
+      border: 1px solid var(--accent);
+    }
+    .btn-primary:hover { transform: translateY(-1px); background: #ffb066; text-decoration: none; }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border-2);
+    }
+    .btn-ghost:hover { border-color: var(--accent-edge); color: var(--accent); text-decoration: none; }
+    .hero-tiny {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ---------- problem ---------- */
+    .problem {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    @media (max-width: 760px) { .problem { grid-template-columns: 1fr; gap: 32px; } }
+    .problem h2 { font-size: 28px; line-height: 1.2; margin-bottom: 16px; }
+    .problem .punch { color: var(--text); }
+    .problem .punch strong { color: var(--accent); }
+    .problem .scroll-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--text-mute);
+    }
+    .problem .scroll-card .ln { display: block; }
+    .problem .scroll-card .ln strong { color: var(--text); font-weight: 600; }
+    .problem .scroll-card .ln.warn  strong { color: var(--warn); }
+    .problem .scroll-card .ln.bad   strong { color: var(--bad); }
+    .problem .scroll-card .ln.good  strong { color: var(--good); }
+
+    /* ---------- demo (screenshot placeholder) ---------- */
+    .demo { text-align: center; }
+    .demo-frame {
+      max-width: 980px; margin: 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-1);
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6),
+                  0 0 0 1px var(--accent-soft) inset;
+    }
+    .demo-titlebar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-titlebar .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .demo-titlebar .dot.r { background: #ff605c; }
+    .demo-titlebar .dot.y { background: #ffbd44; }
+    .demo-titlebar .dot.g { background: #00ca4e; }
+    .demo-titlebar .url {
+      flex: 1; text-align: center;
+      font-family: var(--mono); font-size: 11.5px;
+      color: var(--text-dim);
+    }
+    .demo-body {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      min-height: 360px;
+    }
+    @media (max-width: 760px) { .demo-body { grid-template-columns: 1fr; } }
+    .demo-sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 14px 12px;
+      font-size: 12px;
+      text-align: left;
+    }
+    .demo-sb-group {
+      font-family: var(--mono); font-size: 9.5px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 10px 6px 4px 6px;
+    }
+    .demo-sb-item {
+      display: block; padding: 5px 8px;
+      color: var(--text-mute); border-radius: 4px;
+    }
+    .demo-sb-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-left: 2px solid var(--accent);
+      padding-left: 6px;
+    }
+    .demo-main {
+      padding: 22px 24px;
+      text-align: left;
+    }
+    .demo-h1 {
+      font-size: 22px; margin: 0 0 8px 0; color: var(--text);
+    }
+    .demo-meta {
+      font-family: var(--mono); font-size: 11.5px;
+      color: var(--text-dim); margin-bottom: 18px;
+    }
+    .demo-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 14px;
+      padding: 10px 0;
+      border-top: 1px dashed var(--border);
+      font-size: 12.5px;
+    }
+    .demo-row:first-of-type { border-top: 0; }
+    .demo-row .k {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .demo-row .v { color: var(--text); }
+    .demo-chip {
+      display: inline-block; padding: 1px 7px;
+      border: 1px solid var(--border-2); border-radius: 3px;
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--text-mute);
+      margin-right: 4px;
+    }
+    .demo-chip.accent { color: var(--accent); border-color: var(--accent-edge); background: var(--accent-soft); }
+    .demo-chip.good   { color: var(--good);   border-color: #4ed18a44; }
+    .demo-chip.warn   { color: var(--warn);   border-color: #ffb84a44; }
+    .demo-caption {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-mute);
+    }
+    /* Real product screenshot inside .demo-frame -- replaces the
+       legacy mock-up (.demo-body/.demo-sidebar/.demo-main, kept above
+       only to avoid stylesheet churn). */
+    .demo-shot {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: var(--bg-1);
+    }
+    .demo-frame-secondary {
+      max-width: 880px;
+      margin: 28px auto 0 auto;
+      opacity: 0.92;
+      transform: scale(0.96);
+      transform-origin: top center;
+    }
+
+    /* ---------- features 3-up ---------- */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 880px) { .features { grid-template-columns: 1fr; } }
+    .feature {
+      position: relative;
+      padding: 24px 22px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .feature .num {
+      position: absolute; top: 14px; right: 16px;
+      font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    }
+    .feature .ic {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 7px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-edge);
+      color: var(--accent);
+      margin-bottom: 12px;
+      font-family: var(--mono); font-size: 16px;
+    }
+    .feature h3 { color: var(--text); }
+    .feature p { font-size: 13.5px; margin: 0; }
+
+    /* ---------- "works with" strip ---------- */
+    .works {
+      text-align: center;
+    }
+    .works h2 { margin-bottom: 6px; }
+    .works .sub { margin-bottom: 26px; }
+    .works-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .works-grid .tag {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-1);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-mute);
+    }
+
+    /* ---------- who-for ---------- */
+    .who {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+    }
+    @media (max-width: 760px) { .who { grid-template-columns: 1fr; } }
+    .who-quote {
+      border-left: 3px solid var(--accent);
+      padding: 4px 0 4px 22px;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.55;
+    }
+    .who-quote cite {
+      display: block; margin-top: 14px;
+      font-size: 13px; font-style: normal;
+      color: var(--text-mute);
+    }
+
+    /* ---------- install ---------- */
+    .install { text-align: center; }
+    .install h2 { font-size: 30px; }
+    .install p { max-width: 580px; margin: 0 auto 24px auto; }
+    .install-code {
+      max-width: 460px; margin: 0 auto;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text);
+      text-align: left;
+      position: relative;
+    }
+    .install-code .prompt { color: var(--text-dim); user-select: none; }
+    .install-code .cmd    { color: var(--accent); }
+    .install-copy {
+      position: absolute; top: 10px; right: 10px;
+      padding: 4px 10px;
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: 4px;
+      color: var(--text-mute);
+      font-family: var(--mono); font-size: 11px;
+      cursor: pointer;
+    }
+    .install-copy:hover { color: var(--accent); border-color: var(--accent-edge); }
+    .install-alt {
+      margin-top: 18px;
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    }
+
+    /* ---------- FAQ ---------- */
+    .faq-list { max-width: 760px; margin: 0 auto; }
+    details.faq {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    details.faq summary {
+      cursor: pointer;
+      list-style: none;
+      font-weight: 500;
+      color: var(--text);
+      font-size: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    details.faq summary::-webkit-details-marker { display: none; }
+    details.faq summary::after {
+      content: "+";
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 18px;
+      margin-left: 16px;
+    }
+    details.faq[open] summary::after { content: "−"; }
+    details.faq p {
+      margin: 12px 0 0 0;
+      color: var(--text-mute);
+      font-size: 14px;
+    }
+
+    /* ---------- brand byline -- small "by CogniGuard AI" tag --- */
+    .brand-byline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-left: 10px;
+      padding-left: 10px;
+      border-left: 1px solid var(--border);
+    }
+    .brand-byline strong { color: var(--text-mute); font-weight: 500; }
+    @media (max-width: 540px) {
+      .brand-byline { display: none; }
+    }
+
+    /* ---------- scroll-reveal animation ---------- */
+    .reveal {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 600ms ease, transform 600ms ease;
+      will-change: opacity, transform;
+    }
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+
+    /* ---------- stats strip (below hero) ---------- */
+    .stats-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right,
+        transparent 0%, var(--bg-1) 50%, transparent 100%);
+      padding: 22px 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      text-align: center;
+    }
+    @media (max-width: 760px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 22px; }
+    }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+    .stat-label {
+      font-size: 11.5px;
+      color: var(--text-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      margin-top: 4px;
+    }
+
+    /* ---------- pricing ---------- */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    @media (max-width: 720px) { .pricing-grid { grid-template-columns: 1fr; } }
+    .price-card {
+      position: relative;
+      padding: 28px 26px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      display: flex; flex-direction: column;
+    }
+    .price-card.featured {
+      border-color: var(--accent-edge);
+      background:
+        radial-gradient(ellipse at top, var(--accent-soft) 0%, transparent 70%),
+        var(--surface);
+      box-shadow: 0 0 0 1px var(--accent-soft) inset;
+    }
+    .price-card.featured::before {
+      content: "Most popular";
+      position: absolute; top: -11px; right: 24px;
+      padding: 3px 10px;
+      background: var(--accent); color: #1a0e00;
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-radius: 12px;
+    }
+    .price-card h3 {
+      font-size: 18px; margin: 0 0 4px 0; color: var(--text);
+    }
+    .price-card .price-tag {
+      display: flex; align-items: baseline; gap: 6px;
+      margin: 14px 0 8px 0;
+    }
+    .price-card .price-amount {
+      font-family: var(--mono);
+      font-size: 36px; font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .price-card .price-unit {
+      color: var(--text-mute);
+      font-size: 14px;
+    }
+    .price-card .price-sub {
+      color: var(--text-mute);
+      font-size: 13.5px;
+      margin: 0 0 18px 0;
+      min-height: 38px;
+    }
+    .price-card ul {
+      list-style: none; padding: 0; margin: 0 0 22px 0;
+      flex: 1;
+    }
+    .price-card ul li {
+      position: relative;
+      padding: 6px 0 6px 22px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .price-card ul li::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 12px;
+      width: 12px; height: 12px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ff9a3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8.5l3.5 3.5L13 5'/></svg>");
+      background-size: contain; background-repeat: no-repeat;
+    }
+    .price-card .price-cta {
+      display: block; text-align: center;
+      padding: 11px 18px;
+      border-radius: 6px;
+      font-weight: 500; font-size: 14.5px;
+      transition: transform 80ms ease, background 120ms ease;
+    }
+    .price-card .price-cta.primary {
+      background: var(--accent); color: #1a0e00;
+      border: 1px solid var(--accent);
+    }
+    .price-card .price-cta.primary:hover {
+      background: #ffb066; transform: translateY(-1px);
+      text-decoration: none;
+    }
+    .price-card .price-cta.ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border-2);
+    }
+    .price-card .price-cta.ghost:hover {
+      border-color: var(--accent-edge); color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ---------- big CTA before footer ---------- */
+    .bigcta {
+      text-align: center;
+      padding: 88px 24px;
+      background:
+        radial-gradient(ellipse at center,
+          var(--accent-soft) 0%, transparent 60%),
+        var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .bigcta h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.1;
+      margin: 0 0 14px 0;
+      letter-spacing: -0.025em;
+    }
+    .bigcta p {
+      max-width: 540px; margin: 0 auto 26px auto;
+      font-size: 16px;
+    }
+
+    /* ---------- footer (cursor-grade grid) ---------- */
+    footer.site {
+      padding: 64px 0 32px 0;
+      border-top: 1px solid var(--border);
+      color: var(--text-mute);
+      font-size: 13.5px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    @media (max-width: 760px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 440px) {
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+    .footer-brand .brand-mark {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .footer-brand p {
+      font-size: 13px; color: var(--text-mute);
+      max-width: 320px; margin: 0 0 14px 0;
+    }
+    .footer-col h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin: 0 0 14px 0;
+    }
+    .footer-col ul { list-style: none; padding: 0; margin: 0; }
+    .footer-col ul li { margin: 8px 0; }
+    .footer-col a {
+      color: var(--text-mute);
+      font-size: 13px;
+    }
+    .footer-col a:hover { color: var(--accent); text-decoration: none; }
+    .footer-bottom {
+      padding-top: 24px;
+      display: flex; justify-content: space-between; flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .footer-bottom .brand-line {
+      font-family: var(--mono);
+      letter-spacing: 0.05em;
+    }
+    .footer-bottom .legal a {
+      color: var(--text-dim); margin-left: 16px;
+    }
+    .footer-bottom .legal a:hover { color: var(--text-mute); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- ============================== HEADER ============================== -->
+<header class="site">
+  <div class="wrap site-inner">
+    <a class="brand" href="#top">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span>AgentMonitor</span>
+      <span class="brand-byline">by <strong>CogniGuard&nbsp;AI</strong></span>
+    </a>
+    <nav class="nav">
+      <a href="#problem">Why</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+      <a class="cta" href="#install">Download</a>
+    </nav>
+  </div>
+</header>
+
+<!-- =============================== HERO =============================== -->
+<a id="top"></a>
+<section class="hero">
+  <div class="wrap reveal">
+    <div class="hero-eyebrow">Flight recorder for AI agents · by CogniGuard&nbsp;AI</div>
+    <h1>See what your AI agent <span class="accent">actually did.</span></h1>
+    <p class="hero-sub">
+      AgentMonitor records every move your AI agent makes —
+      the prompts, the tools it called, the files it touched, the
+      money it spent — so when it does something weird, you can
+      rewind and see exactly what happened.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#install">Download for free</a>
+      <a class="btn btn-ghost"   href="#demo">See how it works ↓</a>
+    </div>
+    <div class="hero-tiny">Local-first · No signup · Free forever during beta</div>
+  </div>
+</section>
+
+<!-- ============================ STATS STRIP ============================
+     Cursor-style trust band right after the hero. The numbers are honest
+     for a beta product: integration breadth (7+ AI runtimes), zero cost,
+     zero data-egress, and one-line install. Update them once we have
+     real traction numbers (users / runs recorded). -->
+<div class="stats-strip">
+  <div class="wrap">
+    <div class="stats-grid">
+      <div>
+        <div class="stat-num">7+</div>
+        <div class="stat-label">AI runtimes supported</div>
+      </div>
+      <div>
+        <div class="stat-num">0&nbsp;ms</div>
+        <div class="stat-label">Data sent to the cloud</div>
+      </div>
+      <div>
+        <div class="stat-num">$0</div>
+        <div class="stat-label">Per developer, per month</div>
+      </div>
+      <div>
+        <div class="stat-num">1&nbsp;line</div>
+        <div class="stat-label">To install &amp; record</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ THE PROBLEM ============================ -->
+<section id="problem">
+  <div class="wrap problem reveal">
+    <div>
+      <h2>Your AI agent did something. <br/>You have no idea what.</h2>
+      <p class="punch">
+        It deleted a file. Or it ran up a <strong>$47 OpenAI bill overnight</strong>.
+        Or it edited the wrong function. Or it just… stopped working,
+        with a polite "task complete" and no explanation.
+      </p>
+      <p>
+        Today, the only thing you have is a terminal scrollback —
+        if you're lucky. No replay. No diff. No cost breakdown. No
+        record of which tool the agent actually called.
+      </p>
+      <p>
+        <strong style="color: var(--text);">AgentMonitor changes that.</strong>
+        It runs on your machine, sits next to your agent, and records
+        everything — so the next time something weird happens, you
+        have receipts.
+      </p>
+    </div>
+    <div class="scroll-card" aria-hidden="true">
+      <span class="ln">[14:02:11] <strong>agent</strong> started run <em>fix-build</em></span>
+      <span class="ln">[14:02:14] tool_call: <strong>read_file("package.json")</strong></span>
+      <span class="ln warn">[14:02:17] tool_call: <strong>shell("rm -rf node_modules")</strong></span>
+      <span class="ln">[14:02:31] tool_call: <strong>shell("npm install")</strong></span>
+      <span class="ln bad">[14:09:48] tool_call: <strong>shell("git reset --hard")</strong></span>
+      <span class="ln">[14:09:49] <strong>cost</strong> $0.34 · 18,402 tokens</span>
+      <span class="ln good">[14:09:50] <strong>run complete</strong> · 7m38s</span>
+      <span class="ln muted" style="color: var(--text-dim);">                ↑ wait, what did it reset?</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DEMO ================================ -->
+<section id="demo" class="demo">
+  <div class="wrap reveal">
+    <h2 style="text-align: center;">One dashboard. Every run. Forever.</h2>
+    <p style="text-align: center; max-width: 600px; margin: 0 auto 36px;">
+      AgentMonitor opens as a normal app on your laptop. Click any run
+      to replay it step-by-step — prompts, tools, files, dollars.
+    </p>
+
+    <div class="demo-frame">
+      <div class="demo-titlebar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">localhost:8765/</span>
+      </div>
+      <img class="demo-shot" src="screenshot-welcome.png"
+           alt="AgentMonitor dashboard — Welcome panel with Record / Replay / Rewind cards, sidebar grouped Recorder / Insights / Advanced / More, and a quick-start showing 'pip install agent-monitor'."
+           loading="lazy" decoding="async" />
+    </div>
+
+    <div class="demo-caption">
+      Every run is recorded automatically. Scroll it like a video.
+      Diff what changed. Find out exactly what your agent did.
+    </div>
+
+    <!-- Secondary screenshot: a populated Detonations panel proves the
+         product handles real ingest data, not just empty-state fixtures. -->
+    <div class="demo-frame demo-frame-secondary">
+      <div class="demo-titlebar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="url">localhost:8765/#detonations</span>
+      </div>
+      <img class="demo-shot" src="screenshot-detonations.png"
+           alt="AgentMonitor Detonations panel — list of sandbox detonations with severity chips, sample SHA-256 hashes, and a green 'Demo data loaded' toast."
+           loading="lazy" decoding="async" />
+    </div>
+  </div>
+</section>
+
+<!-- ============================= FEATURES ============================= -->
+<section id="features">
+  <div class="wrap reveal">
+    <h2 style="text-align: center;">Record. Replay. Rewind.</h2>
+    <p style="text-align: center; max-width: 600px; margin: 0 auto 40px;">
+      Three things AgentMonitor does, that nothing else on your laptop does.
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <span class="num">01</span>
+        <div class="ic">●</div>
+        <h3>Record</h3>
+        <p>
+          Every agent run is captured automatically — the prompts,
+          the tool calls, the files touched, the tokens spent, the
+          dollars burned. Works with Cursor, Claude Code, OpenAI,
+          Anthropic, LangChain, AutoGen, Ollama. <strong style="color: var(--text);">No code changes.</strong>
+        </p>
+      </div>
+      <div class="feature">
+        <span class="num">02</span>
+        <div class="ic">▶</div>
+        <h3>Replay</h3>
+        <p>
+          Open any past run and scroll through it like a video. See
+          exactly what the agent thought, what it tried, what
+          worked, what didn't — step by step, with timestamps and
+          cost.
+        </p>
+      </div>
+      <div class="feature">
+        <span class="num">03</span>
+        <div class="ic">↺</div>
+        <h3>Rewind</h3>
+        <p>
+          When something goes wrong, you have the receipts. The
+          exact prompt, the exact response, the exact file diff, the
+          exact cost — <strong style="color: var(--text);">all in one place, in one click.</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= WORKS WITH =========================== -->
+<section class="works">
+  <div class="wrap reveal">
+    <h2>Works with what you already use.</h2>
+    <p class="sub">Zero glue code. AgentMonitor auto-detects supported runtimes and starts recording.</p>
+    <div class="works-grid">
+      <span class="tag">OpenAI</span>
+      <span class="tag">Anthropic Claude</span>
+      <span class="tag">Cursor</span>
+      <span class="tag">Claude Code</span>
+      <span class="tag">LangChain</span>
+      <span class="tag">AutoGen</span>
+      <span class="tag">Smolagents</span>
+      <span class="tag">Ollama</span>
+      <span class="tag">Local Llama</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= WHO IT'S FOR ========================= -->
+<section id="who">
+  <div class="wrap who reveal">
+    <div>
+      <h2>Built for the developer who can't sleep.</h2>
+      <p>
+        Maya is a backend engineer at a 40-person startup. She uses
+        Cursor and Claude Code every day to ship features. Her
+        agents are productive — most of the time.
+      </p>
+      <p>
+        But every few weeks, an agent does something inexplicable.
+        Maya opens a terminal scrollback at 1am and tries to piece
+        together what happened. There has to be a better way.
+      </p>
+      <p>
+        AgentMonitor is that better way. It runs in the background.
+        It records everything. When Maya needs to know what her
+        agent did, she clicks one button.
+      </p>
+    </div>
+    <div>
+      <blockquote class="who-quote">
+        We're shipping AgentMonitor because we've been Maya. Watching
+        an agent eat $47 of OpenAI credits and not knowing why is a
+        bad night. We built the tool we wanted to have that night.
+        <cite>— CogniGuard&nbsp;AI · 2026</cite>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PRICING =============================
+     Two tiers. Free is the honest default for Maya; Pro is the soft
+     monetization signal for power users who want sandbox / detonations
+     / SARIF export. Locked in BRAND.md §9. -->
+<section id="pricing">
+  <div class="wrap reveal">
+    <h2 style="text-align: center;">Simple pricing. Honest defaults.</h2>
+    <p style="text-align: center; max-width: 580px; margin: 0 auto 40px;">
+      The core flight-recorder is free forever. Advanced features
+      cost what they save you. No seats, no telemetry, no tricks.
+    </p>
+
+    <div class="pricing-grid">
+
+      <!-- Free tier -->
+      <div class="price-card">
+        <h3>Free</h3>
+        <div class="price-tag">
+          <span class="price-amount">$0</span>
+          <span class="price-unit">/ forever</span>
+        </div>
+        <p class="price-sub">
+          Everything a solo developer needs to know what their AI
+          agents are doing.
+        </p>
+        <ul>
+          <li>Unlimited recorded runs</li>
+          <li>Full replay &amp; cost breakdown</li>
+          <li>Works with Cursor, Claude Code, OpenAI, Anthropic, LangChain, AutoGen, Ollama</li>
+          <li>Local SQLite — your data never leaves your laptop</li>
+          <li>No signup, no telemetry, no nag screens</li>
+        </ul>
+        <a class="price-cta primary" href="#install">Download free</a>
+      </div>
+
+      <!-- Pro tier -->
+      <div class="price-card featured">
+        <h3>Pro</h3>
+        <div class="price-tag">
+          <span class="price-amount">$49</span>
+          <span class="price-unit">/ developer / month</span>
+        </div>
+        <p class="price-sub">
+          For power users running agents in production. Currently free
+          during beta — lock the price by signing up early.
+        </p>
+        <ul>
+          <li><strong>Everything in Free</strong></li>
+          <li>Code Scan — agent-touched-this-file diffing</li>
+          <li>Scanner Obs — agent-on-agent ingestion telemetry</li>
+          <li>Detonations — drop a Cuckoo / Joe / VMRay report, get a verdict</li>
+          <li>SARIF export to GitHub Code Scanning</li>
+          <li>Priority email support from CogniGuard&nbsp;AI</li>
+        </ul>
+        <a class="price-cta ghost" href="#install">Start free beta</a>
+      </div>
+
+    </div>
+
+    <p style="text-align: center; margin-top: 26px; color: var(--text-mute); font-size: 13px;">
+      Enterprise (SSO, audit log export, on-prem) — <a href="mailto:hello@cogniguardai.com">hello@cogniguardai.com</a>.
+    </p>
+  </div>
+</section>
+
+<!-- ============================== INSTALL ============================= -->
+<section id="install" class="install">
+  <div class="wrap reveal">
+    <h2>Start recording in 60 seconds.</h2>
+    <p>
+      AgentMonitor is a normal Python package. Install it,
+      wrap your agent call once, refresh the dashboard.
+      <strong style="color: var(--text);">100% local. No signup. No telemetry.</strong>
+    </p>
+
+    <div class="install-code">
+      <button class="install-copy" id="copy-btn" aria-label="copy install command">copy</button>
+      <div><span class="prompt">$ </span><span class="cmd">pip install agent-monitor</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">agent-monitor</span><span class="muted"> # opens the dashboard at :8765</span></div>
+    </div>
+
+    <div class="install-alt">
+      <!-- LAUNCH-TODO: wire #dl-win href to the Windows installer URL.
+           Suggested options (in order of zero-effort):
+             1. https://github.com/<owner>/<repo>/releases/latest
+             2. Direct .exe URL on the GitHub release
+             3. https://agentmonitor.dev/download/AgentMonitor-Setup.exe
+           Until then, this anchor is a safe no-op (#). -->
+      <a class="btn btn-ghost"   href="#" id="dl-win">Download for Windows</a>
+      <!-- LAUNCH-TODO: replace https://github.com/ with the real repo URL. -->
+      <a class="btn btn-ghost"   href="https://github.com/" rel="noopener">GitHub repo</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================================ FAQ =============================== -->
+<section id="faq">
+  <div class="wrap reveal">
+    <h2 style="text-align: center;">Questions you're probably about to ask</h2>
+
+    <div class="faq-list">
+      <details class="faq">
+        <summary>Does AgentMonitor send my data anywhere?</summary>
+        <p>
+          No. Everything stays on your laptop. AgentMonitor runs a
+          local server on <code>localhost:8765</code> and writes to
+          a local SQLite database. There is no cloud, no signup,
+          no telemetry. We literally cannot see your data — by design.
+        </p>
+      </details>
+
+      <details class="faq">
+        <summary>Which AI agents does it support?</summary>
+        <p>
+          Anything that calls OpenAI, Anthropic, or a local model
+          via Ollama — plus framework-level integrations for
+          LangChain, AutoGen, Smolagents, Cursor's agent mode, and
+          Claude Code. If you're using something else, the generic
+          adapter takes 3 lines.
+        </p>
+      </details>
+
+      <details class="faq">
+        <summary>Is it free?</summary>
+        <p>
+          Yes. Core recording, replay and run history are free
+          forever. Advanced features like Code Scan, Scanner Obs
+          and sandbox Detonations are marked <strong>PRO</strong>
+          in the sidebar — they're free during beta, and will be
+          paid afterwards. We'll never paywall the core flight-recorder.
+        </p>
+      </details>
+
+      <details class="faq">
+        <summary>Do I have to change my code?</summary>
+        <p>
+          For most users, no — once installed, AgentMonitor
+          auto-detects supported runtimes and starts recording.
+          For custom agents, wrap your run in a
+          <code>with monitor(agent="my-agent"):</code> block.
+          That's it.
+        </p>
+      </details>
+
+      <details class="faq">
+        <summary>How is this different from LangSmith / Helicone / Phoenix?</summary>
+        <p>
+          Those are cloud-first observability platforms for prompt
+          engineers. AgentMonitor is a <strong>local-first flight
+          recorder</strong> for developers who run AI agents on
+          their own machine and want to know exactly what those
+          agents did. Different audience, different shape.
+        </p>
+      </details>
+
+      <details class="faq">
+        <summary>What's on the roadmap?</summary>
+        <p>
+          Today: record + replay + cost. Next: agent-level
+          diff-and-revert (the "rewind" button stops being
+          metaphorical). After that: a kill-switch that pauses a
+          running agent the moment it tries something out of
+          character. See
+          <!-- LAUNCH-TODO: replace https://github.com/ with the real repo URL. -->
+          <a href="https://github.com/">our GitHub</a>.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== BIG CTA (pre-footer) ====================
+     Final ask before the footer. Cursor uses this pattern hard: one
+     last big headline + one CTA. -->
+<section class="bigcta">
+  <div class="wrap reveal">
+    <h2>Ready to see what your agents are <span style="color: var(--accent);">really</span> doing?</h2>
+    <p class="muted">
+      Install in 60 seconds. Stays on your machine. Free forever.
+    </p>
+    <a class="btn btn-primary" href="#install">Download AgentMonitor</a>
+  </div>
+</section>
+
+<!-- ============================== FOOTER ============================== -->
+<footer class="site">
+  <div class="wrap">
+    <div class="footer-grid">
+
+      <div class="footer-brand">
+        <div class="brand-mark">
+          <span class="brand-dot" aria-hidden="true"></span>
+          <strong style="color: var(--text);">CogniGuard&nbsp;AI</strong>
+        </div>
+        <p>
+          We build developer tools for the AI-agent era.
+          <strong style="color: var(--text);">AgentMonitor</strong> is our
+          flagship product — a flight recorder that runs on your laptop
+          and shows you exactly what your AI agents did.
+        </p>
+        <p style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; color: var(--text-dim);">
+          MADE WITH CARE · NOT WITH TELEMETRY
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#demo">Screenshots</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <!-- LAUNCH-TODO: replace https://github.com/ links with the real repo URL. -->
+          <li><a href="https://github.com/" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/" rel="noopener">Releases</a></li>
+          <li><a href="https://github.com/" rel="noopener">Documentation</a></li>
+          <li><a href="https://github.com/" rel="noopener">Changelog</a></li>
+          <li><a href="mailto:hello@cogniguardai.com">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://cogniguardai.com/">CogniGuard&nbsp;AI</a></li>
+          <li><a href="mailto:hello@cogniguardai.com">hello@cogniguardai.com</a></li>
+          <!-- LAUNCH-TODO: replace # with your X/Twitter, LinkedIn, etc. -->
+          <li><a href="#" rel="noopener">X / Twitter</a></li>
+          <li><a href="#" rel="noopener">LinkedIn</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <div class="brand-line">
+        © 2026 CogniGuard&nbsp;AI · AgentMonitor · See what your AI agent actually did.
+      </div>
+      <div class="legal">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- Scroll-reveal: fade + lift sections as they enter the viewport.
+  //      Native IntersectionObserver, no dependencies. Triggers once
+  //      per element so we don't re-animate on scroll-back. Honors
+  //      prefers-reduced-motion via the CSS reset above.
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!els.length) return;
+    if (typeof IntersectionObserver !== 'function') {
+      // Old browser: just show everything.
+      for (var i = 0; i < els.length; i++) els[i].classList.add('in');
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+    els.forEach(function (el) { io.observe(el); });
+  })();
+
+  // ---- Copy install command -- single-purpose, no framework.
+  (function () {
+    var btn = document.getElementById('copy-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var cmd = 'pip install agent-monitor';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmd);
+      } else {
+        // Fallback for older browsers / non-HTTPS local viewing.
+        var ta = document.createElement('textarea');
+        ta.value = cmd; document.body.appendChild(ta);
+        ta.select(); try { document.execCommand('copy'); } catch (_) {}
+        document.body.removeChild(ta);
+      }
+      var prev = btn.textContent;
+      btn.textContent = 'copied ✓';
+      setTimeout(function () { btn.textContent = prev; }, 1400);
+    });
+  })();
+</script>
+
+</body>
+</html>

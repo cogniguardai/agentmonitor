@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgentMonitor by CogniGuard AI — See what your AI agent actually did</title>
+  <meta name="description" content="AgentMonitor by CogniGuard AI is a free desktop app that records every move your AI agent makes — prompts, tools, files, cost — so when something goes weird, you can rewind and see exactly what happened. Works with Cursor, Claude Code, OpenAI, Anthropic, LangChain, AutoGen, Ollama. 100% on your machine." />
+  <meta name="author" content="CogniGuard AI" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Lucide icon sprite (inline so it works in the frozen .exe with no CDN). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.68 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4.44 13H2"/></symbol>
+      <symbol id="i-brain" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></symbol>
+      <symbol id="i-shield-alert" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+      <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></symbol>
+      <symbol id="i-file-search" viewBox="0 0 24 24"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><circle cx="11.5" cy="14.5" r="2.5"/><line x1="13.27" x2="15" y1="16.27" y2="18"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+      <symbol id="i-dollar" viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-icon"><use href="#i-eye"/></svg>
+      <span class="brand-text">AgentMonitor</span>
+      <span class="brand-sub">See what your AI agent actually did.</span>
+      <!-- Tiny parent-brand attribution -- per BRAND.md §0, the product UI
+           stays AgentMonitor-branded; CogniGuard AI is only a quiet tag. -->
+      <span class="brand-by" title="AgentMonitor is made by CogniGuard AI">by
+        <a href="https://cogniguardai.com/" target="_blank" rel="noopener">CogniGuard&nbsp;AI</a>
+      </span>
+    </div>
+    <nav class="topbar-status" id="status-pills">
+      <span class="pill" data-key="ollama">Ollama <em>…</em></span>
+      <span class="pill" data-key="probes">Probes <em>…</em></span>
+      <span class="pill" data-key="browser">Browser <em>…</em></span>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <!-- v1.10 sidebar restructure: A-wedge (Flight Recorder) hero panels at top,
+           insights mid, paid Advanced features grouped with PRO badge, settings at bottom.
+           See BRAND.md §8 for the canonical ordering. -->
+      <div class="nav-group">
+        <div class="nav-group-label"><svg class="icon icon-xs"><use href="#i-activity"/></svg> Recorder</div>
+        <a class="nav-link active" data-panel="welcome"><svg class="icon"><use href="#i-home"/></svg> Welcome</a>
+        <a class="nav-link" data-panel="live"><svg class="icon"><use href="#i-activity"/></svg> Live</a>
+        <a class="nav-link" data-panel="thoughts"><svg class="icon"><use href="#i-brain"/></svg> Thoughts</a>
+        <a class="nav-link" data-panel="runs"><svg class="icon"><use href="#i-play"/></svg> Runs</a>
+        <a class="nav-link" data-panel="memory"><svg class="icon"><use href="#i-bookmark"/></svg> Memory</a>
+        <a class="nav-link" data-panel="posture"><svg class="icon"><use href="#i-shield-alert"/></svg> Posture</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label"><svg class="icon icon-xs"><use href="#i-eye"/></svg> Insights</div>
+        <a class="nav-link" data-panel="overview"><svg class="icon"><use href="#i-home"/></svg> Overview</a>
+        <a class="nav-link" data-panel="agents"><svg class="icon"><use href="#i-users"/></svg> Agents</a>
+        <a class="nav-link" data-panel="cost"><svg class="icon"><use href="#i-wallet"/></svg> Cost</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label"><svg class="icon icon-xs"><use href="#i-cpu"/></svg> Advanced <span class="pro-badge">PRO</span></div>
+        <a class="nav-link" data-panel="codescan"><svg class="icon"><use href="#i-code"/></svg> Code Scan</a>
+        <a class="nav-link" data-panel="scanobs"><svg class="icon"><use href="#i-gauge"/></svg> Scanner Obs</a>
+        <a class="nav-link" data-panel="detonations"><svg class="icon"><use href="#i-flame"/></svg> Detonations</a>
+        <a class="nav-link" data-panel="interp"><svg class="icon"><use href="#i-cpu"/></svg> Interp</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label"><svg class="icon icon-xs"><use href="#i-wrench"/></svg> More</div>
+        <a class="nav-link" data-panel="browser"><svg class="icon"><use href="#i-monitor"/></svg> Browser</a>
+        <a class="nav-link" data-panel="about"><svg class="icon"><use href="#i-info"/></svg> About</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- WELCOME (v1.10 default landing for the A-wedge / Flight Recorder positioning) -->
+      <section class="panel" id="panel-welcome">
+        <div class="welcome-hero">
+          <svg class="welcome-icon"><use href="#i-eye"/></svg>
+          <h1>See what your AI agent actually did.</h1>
+          <p class="welcome-sub">
+            AgentMonitor records every move your AI agent makes — the prompts,
+            the tools it called, the files it touched, the money it spent —
+            so when it does something weird, you can rewind and see exactly
+            what happened.
+          </p>
+          <div class="welcome-cta">
+            <button class="welcome-cta-primary" id="welcome-quickstart">
+              <svg class="icon"><use href="#i-play"/></svg>
+              Start recording your first agent
+            </button>
+            <button class="welcome-cta-secondary" id="welcome-demo">
+              Load a demo agent
+            </button>
+          </div>
+        </div>
+
+        <div class="welcome-three">
+          <div class="welcome-card">
+            <div class="welcome-card-num">1</div>
+            <svg class="welcome-card-icon"><use href="#i-activity"/></svg>
+            <h3>Record</h3>
+            <p>Every agent run is captured automatically — the prompts, the
+              tool calls, the files touched, the tokens spent, the money
+              burned. Works with Cursor, Claude Code, OpenAI, Anthropic,
+              LangChain, AutoGen, Ollama. No code changes.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-num">2</div>
+            <svg class="welcome-card-icon"><use href="#i-play"/></svg>
+            <h3>Replay</h3>
+            <p>Open any past run and scroll through it like a video. See
+              exactly what the agent thought, what it tried, what worked,
+              what didn't — step by step.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-num">3</div>
+            <svg class="welcome-card-icon"><use href="#i-shield-alert"/></svg>
+            <h3>Rewind</h3>
+            <p>When something goes wrong, you have the receipts. The exact
+              prompt, the exact response, the exact file diff, the exact
+              cost — all in one place, in one click.</p>
+          </div>
+        </div>
+
+        <div class="welcome-trust">
+          <div class="welcome-trust-item">
+            <strong>100% on your machine.</strong>
+            Your agents stay on your laptop. We never see your data.
+          </div>
+          <div class="welcome-trust-item">
+            <strong>Free, forever.</strong>
+            No signup, no cloud, no telemetry. Pro features are free during beta.
+          </div>
+          <div class="welcome-trust-item">
+            <strong>Works with what you already use.</strong>
+            7+ AI runtimes supported. No code changes needed.
+          </div>
+        </div>
+
+        <div class="welcome-state" id="welcome-state">
+          <!-- Filled by app.js with "you have N runs, last one X ago" OR a quick-start guide. -->
+        </div>
+      </section>
+
+      <!-- OVERVIEW (demoted: no longer the default landing, still useful for power users via Insights group) -->
+      <section class="panel hidden" id="panel-overview">
+        <h1>Overview</h1>
+        <div class="cards" id="overview-cards"></div>
+        <h2>Recent runs</h2>
+        <div id="overview-runs"></div>
+      </section>
+
+      <!-- AGENTS -->
+      <section class="panel hidden" id="panel-agents">
+        <h1>Agents</h1>
+        <p class="muted">Every agent class registered in this monitor.
+          A run is created in <code>run</code> the first time the agent emits work.</p>
+        <div id="agents-list"></div>
+      </section>
+
+      <!-- RUNS -->
+      <section class="panel hidden" id="panel-runs">
+        <h1>Runs</h1>
+        <div class="toolbar">
+          <label>Filter agent
+            <select id="runs-agent-filter"><option value="">all</option></select>
+          </label>
+          <label>Runtime
+            <select id="runs-kind-filter">
+              <option value="">all</option>
+              <option value="qwen-vllm">qwen-vllm (interp-capable)</option>
+              <option value="ollama">ollama</option>
+              <option value="openai">openai</option>
+              <option value="anthropic">anthropic</option>
+              <option value="langchain">langchain</option>
+              <option value="autogen">autogen</option>
+              <option value="smolagents">smolagents</option>
+            </select>
+          </label>
+          <label>Limit
+            <input id="runs-limit" type="number" min="1" max="500" value="50" />
+          </label>
+          <button id="runs-refresh">Refresh</button>
+        </div>
+        <div id="runs-table"></div>
+      </section>
+
+      <!-- COST (v1.7) -->
+      <section class="panel hidden" id="panel-cost">
+        <h1>Cost <span class="muted">(token economics)</span></h1>
+        <div class="nla-banner amber">
+          <strong>Honest accounting:</strong> we compute cost from
+          <em>your reported</em> token counts &times; public list prices,
+          stored in <code>agent_monitor/pricing.py</code>. Unknown models
+          and runs that never reported tokens show <code>&mdash;</code>,
+          not zero. Local-runtime runs (Qwen / Llama-Guard / Ollama) are
+          modelled at $0.00 by accounting policy &mdash; you already paid
+          for the GPU. To override a price, drop a
+          <code>pricing_overrides.json</code> in the data directory.
+        </div>
+
+        <div class="toolbar">
+          <label>Group by
+            <select id="cost-group-by">
+              <option value="kind" selected>runtime (agent.kind)</option>
+              <option value="model">model id</option>
+              <option value="agent">agent name</option>
+            </select>
+          </label>
+          <label>Since
+            <input id="cost-since" type="date" />
+          </label>
+          <button id="cost-refresh">Refresh</button>
+        </div>
+
+        <div class="cards" id="cost-totals"></div>
+
+        <h2>Breakdown</h2>
+        <div id="cost-breakdown"></div>
+
+        <h2>Pricing catalog
+          <span class="muted" id="cost-pricing-note" style="font-size:12px"></span>
+        </h2>
+        <details>
+          <summary class="muted">Show the model price table that's
+            currently active (list prices + your overrides).</summary>
+          <div id="cost-pricing-table"></div>
+        </details>
+      </section>
+
+      <!-- POSTURE (v1.8) -->
+      <section class="panel hidden" id="panel-posture">
+        <h1>Posture <span class="muted">(offensive-pattern classifier)</span></h1>
+        <div class="nla-banner amber">
+          <strong>What this is:</strong> a defender-side pattern matcher
+          that reads agent <em>trace text</em> and reports signals
+          associated with exploit-development workflows. <strong>It is
+          not a verdict.</strong> Every match comes from a public
+          source (MITRE ATT&amp;CK, LOLDrivers, Microsoft WDK docs,
+          common defender literature) and is shown with its weight and
+          source URL. A high score means &ldquo;this trace exhibits
+          patterns worth reviewing,&rdquo; not &ldquo;this agent is
+          malicious.&rdquo;
+          <br><br>
+          <strong>What this is not:</strong> a vulnerability scanner,
+          a detection-rule generator, or anything that reads source
+          code or driver binaries. We look only at the text the agent
+          itself produced.
+        </div>
+
+        <div class="toolbar">
+          <label>Min score
+            <input id="posture-min-score" type="number" min="0" max="1"
+                   step="0.05" value="0.05" />
+          </label>
+          <label>Limit
+            <input id="posture-limit" type="number" min="1" max="500" value="100" />
+          </label>
+          <button id="posture-refresh">Refresh</button>
+          <button id="posture-replay" title="Re-classify historical runs whose score is NULL">Replay over null runs</button>
+          <span id="posture-replay-status" class="muted"></span>
+        </div>
+
+        <div class="cards" id="posture-totals"></div>
+
+        <h2>Flagged runs</h2>
+        <div id="posture-runs"></div>
+
+        <h2>Signature catalog
+          <span class="muted" id="posture-sig-note" style="font-size:12px"></span>
+        </h2>
+        <details>
+          <summary class="muted">Show every active signature with its
+            weight and source URL.</summary>
+          <div id="posture-sig-table"></div>
+        </details>
+      </section>
+
+      <!-- LIVE -->
+      <section class="panel hidden" id="panel-live">
+        <h1>Live trace</h1>
+        <div class="toolbar">
+          <label>Run id
+            <input id="live-run-id" type="number" placeholder="e.g. 1" />
+          </label>
+          <button id="live-connect">Connect</button>
+          <button id="live-disconnect" disabled>Disconnect</button>
+          <span id="live-status" class="muted"></span>
+        </div>
+        <div class="trace-feed"><div id="live-feed" class="trace-rows"></div></div>
+      </section>
+
+      <!-- MEMORY -->
+      <section class="panel hidden" id="panel-memory">
+        <h1>Memory</h1>
+        <div class="toolbar">
+          <input id="mem-q" type="text" placeholder="search…" />
+          <label><input type="checkbox" id="mem-semantic" /> semantic</label>
+          <button id="mem-search">Search</button>
+          <span class="spacer"></span>
+          <button id="mem-add-toggle">+ Add chunk</button>
+        </div>
+        <div id="mem-add" class="hidden card standalone">
+          <textarea id="mem-add-text" rows="4" placeholder="Text to remember…"></textarea>
+          <div class="row">
+            <input id="mem-add-tags" type="text" placeholder="tags,comma,sep" />
+            <button id="mem-add-submit">Save</button>
+          </div>
+        </div>
+        <div id="mem-results"></div>
+      </section>
+
+      <!-- INTERP -->
+      <section class="panel hidden" id="panel-interp">
+        <h1>Interp <span class="muted">(text-level + Qwen residual-stream)</span></h1>
+        <div id="interp-scope-banner" class="nla-banner amber">
+          <strong>Honest scope:</strong> the text-level harm classifier (Llama Guard 3)
+          and the toy embedding probes work on <em>any</em> trace text and apply to
+          all runtimes. Mechanistic residual-stream probes
+          (<code>interp_real/</code>) only run against
+          <strong>qwen-vllm</strong> runs — for OpenAI, Anthropic, Ollama, AutoGen,
+          smolagents, and LangChain the model weights and activations aren't ours,
+          so those panels stay empty by design.
+        </div>
+        <p class="muted">Primary <code>harm</code> signal is
+          <strong>Llama Guard 3</strong> (Meta's purpose-built safety classifier,
+          served locally via Ollama). The toy embedding probes
+          (<code>harm_toy</code> / <code>refusal</code> / <code>hedging</code>)
+          are kept as cheap drift detectors. If Llama Guard is unreachable, the
+          dashboard falls back to the toy harm probe and labels it as such.
+          See <code>interp/PRODUCTION_PROBES_PLAN.md</code> for the full design note.</p>
+        <textarea id="interp-text" rows="5"
+          placeholder="Type or paste text to score…"></textarea>
+        <div class="row">
+          <button id="interp-score">Score</button>
+          <span id="interp-status" class="muted"></span>
+        </div>
+        <div id="interp-result"></div>
+      </section>
+
+      <!-- THOUGHTS (NLA) -->
+      <section class="panel hidden" id="panel-thoughts">
+        <h1>Thoughts</h1>
+        <p class="muted">Inspired by Anthropic's
+          <a href="https://www.anthropic.com/research/natural-language-autoencoders"
+             target="_blank" rel="noopener">Natural Language Autoencoders</a>
+          (NLA): turn an agent's apparent reasoning into readable text and flag
+          things the model may be thinking but not saying — evaluation
+          awareness, hidden motivations, safety-relevant deliberation.</p>
+        <div id="nla-banner" class="banner muted"></div>
+        <textarea id="nla-text" rows="5"
+          placeholder="Paste an agent's input or output to decode its apparent thoughts…"></textarea>
+        <div class="row">
+          <button id="nla-decode">Decode</button>
+          <label>target
+            <select id="nla-target">
+              <option value="adhoc" selected>adhoc</option>
+              <option value="input">input</option>
+              <option value="output">output</option>
+              <option value="cot">cot</option>
+            </select>
+          </label>
+          <label>run id (optional)
+            <input id="nla-run-id" type="number" placeholder="persist to run #" />
+          </label>
+          <span id="nla-status" class="muted"></span>
+        </div>
+        <div id="nla-result"></div>
+      </section>
+
+      <!-- BROWSER -->
+      <section class="panel hidden" id="panel-browser">
+        <h1>Browser</h1>
+        <p class="muted">Headless Chromium controlled via Playwright.
+          Useful for read-only verification: open a URL, capture a screenshot,
+          extract text.</p>
+        <div class="toolbar">
+          <input id="br-url" type="text" placeholder="https://example.com"
+            value="https://example.com" />
+          <button id="br-go">Go</button>
+          <button id="br-shot">Refresh shot</button>
+          <button id="br-close">Close</button>
+          <span id="br-status" class="muted"></span>
+        </div>
+        <div id="br-shot-wrap"><img id="br-shot-img" alt="(no screenshot yet)" /></div>
+      </section>
+
+      <!-- CODE SCAN -->
+      <section class="panel hidden" id="panel-codescan">
+        <h1>Code Scan <span class="muted">(v1.5 — screening tool)</span></h1>
+
+        <div class="dropzone" data-mode="auto" id="cs-dropzone">
+          <svg class="icon icon-lg"><use href="#i-upload"/></svg>
+          <div class="dropzone-title">Drop a SARIF or sandbox-report JSON here</div>
+          <div class="dropzone-sub">Or <label class="link-btn">choose a file<input type="file" accept=".json,.sarif" hidden></label> — we auto-detect SARIF v2.1 vs Cuckoo / generic sandbox envelope.</div>
+          <div class="dropzone-status" id="cs-dropzone-status"></div>
+        </div>
+
+        <details class="info-disclosure">
+          <summary><span class="muted">About this scan</span></summary>
+          <div class="info-disclosure-body">
+            <strong>Honest scope:</strong> this is a small-LLM screening tool, not a
+            replacement for static analyzers (CodeQL/Coverity/Semgrep), fuzzers
+            (syzkaller/AFL++), or formal verification. Expect false positives.
+            Every excerpt shown is verified to be a verbatim substring of the
+            source file — if you don't see code in the finding, no finding was kept.
+            <div class="muted" id="cs-status-line" style="margin-top:6px">…</div>
+          </div>
+        </details>
+
+        <div class="toolbar">
+          <input id="cs-path" type="text" style="flex:1; min-width:280px"
+            placeholder="C:\path\to\source\tree" />
+          <input id="cs-label" type="text" style="width:180px"
+            placeholder="label (optional)" />
+          <button id="cs-start">Start scan</button>
+          <button id="cs-refresh-list">Refresh</button>
+        </div>
+        <div class="toolbar muted" style="font-size:12px; flex-wrap:wrap">
+          <label>language
+            <select id="cs-language" style="font-size:12px">
+              <option value="all" selected>all (default mix)</option>
+              <option value="c_cpp">C / C++</option>
+              <option value="rust">Rust</option>
+              <option value="go">Go</option>
+              <option value="python">Python</option>
+              <option value="js_ts">JavaScript / TypeScript</option>
+              <option value="java_kotlin">Java / Kotlin</option>
+              <option value="ruby">Ruby</option>
+              <option value="php">PHP</option>
+              <option value="shell">Shell</option>
+              <option value="sql">SQL</option>
+              <option value="asm">Assembly</option>
+            </select>
+          </label>
+          <label>chunk lines <input id="cs-chunk-lines" type="number"
+            value="200" min="40" max="1000" style="width:60px"/></label>
+          <label>max files <input id="cs-max-files" type="number"
+            value="0" min="0" style="width:60px"/> (0 = all)</label>
+          <label><input id="cs-persist-low" type="checkbox"/> include info-level findings</label>
+        </div>
+        <div class="toolbar muted" style="font-size:12px">
+          <label><input id="cs-diff-only" type="checkbox"/>
+            diff-only (git):</label>
+          <input id="cs-git-since" type="text" value="HEAD~1"
+            placeholder="HEAD~1 / main / abc123" style="width:160px"/>
+          <span class="muted">scan only files changed since this ref + untracked</span>
+        </div>
+
+        <h2>Scans</h2>
+        <table id="cs-scans" class="data-table">
+          <thead><tr>
+            <th>id</th><th>label</th><th>root</th><th>status</th>
+            <th>files</th><th>findings</th><th>started</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <div id="cs-detail" class="hidden">
+          <h2>Scan <span id="cs-detail-id"></span> — <span id="cs-detail-label" class="muted"></span></h2>
+          <div id="cs-detail-progress" class="muted"></div>
+          <div id="cs-histogram" class="cs-histogram"></div>
+          <div class="toolbar">
+            <label>min severity:
+              <select id="cs-filter-sev">
+                <option value="">(any)</option>
+                <option value="low">low+</option>
+                <option value="medium" selected>medium+</option>
+                <option value="high">high+</option>
+                <option value="critical">critical only</option>
+              </select>
+            </label>
+            <label>kind:
+              <select id="cs-filter-kind">
+                <option value="">(any)</option>
+                <option value="memory_safety">memory_safety</option>
+                <option value="auth_or_priv">auth_or_priv</option>
+                <option value="injection">injection</option>
+                <option value="crypto_misuse">crypto_misuse</option>
+                <option value="obfuscation_or_backdoor">obfuscation_or_backdoor</option>
+                <option value="concurrency">concurrency</option>
+                <option value="external_input">external_input</option>
+              </select>
+            </label>
+            <button id="cs-apply-filter">Apply</button>
+          </div>
+          <div id="cs-findings"></div>
+        </div>
+      </section>
+
+      <!-- SCANNER OBS (v1.9) -->
+      <section class="panel hidden" id="panel-scanobs">
+        <h1>Scanner Obs <span class="muted">(the dashboard over your scanners)</span></h1>
+        <p class="muted" style="max-width:760px">
+          The <em>observability layer</em> over Semgrep / CodeQL / Bandit /
+          your own scanner. Read the KPIs nobody else gives you:
+          <strong>$/finding</strong>,
+          <strong>false-positive rate after triage</strong>,
+          <strong>time-to-fix</strong>,
+          <strong>scanner-version drift</strong>,
+          <strong>finding density per kind</strong>.
+          AgentMonitor is not a scanner. We are the meta-tool.
+        </p>
+
+        <div class="dropzone" data-mode="auto" id="so-dropzone">
+          <svg class="icon icon-lg"><use href="#i-upload"/></svg>
+          <div class="dropzone-title">Drop a SARIF or sandbox-report JSON here</div>
+          <div class="dropzone-sub">Or <label class="link-btn">choose a file<input type="file" accept=".json,.sarif" hidden></label> — auto-detects format.</div>
+          <div class="dropzone-status" id="so-dropzone-status"></div>
+        </div>
+
+        <div class="toolbar">
+          <label>Since (ISO date)
+            <input id="so-since" type="text" placeholder="e.g. 2026-01-01" />
+          </label>
+          <button id="so-refresh">Refresh</button>
+        </div>
+
+        <h2>Fleet KPIs</h2>
+        <div class="cards" id="so-summary"></div>
+
+        <h2>Per-tool breakdown</h2>
+        <div id="so-tools"></div>
+
+        <h2>Drift between scans
+          <span class="muted" style="font-size:12px">— compare the two most-recent scans of (tool, root)</span>
+        </h2>
+        <div class="toolbar">
+          <label>Tool
+            <select id="so-drift-tool"></select>
+          </label>
+          <button id="so-drift-go">Compare</button>
+          <span id="so-drift-note" class="muted"></span>
+        </div>
+        <div id="so-drift"></div>
+
+        <h2>Finding density by kind</h2>
+        <div id="so-density"></div>
+
+        <h2>Triage console
+          <span class="muted" style="font-size:12px">— mark recent findings as FP / confirmed / fixed</span>
+        </h2>
+        <div class="toolbar">
+          <label>Scan id
+            <input id="so-triage-scan" type="number" placeholder="e.g. 4" />
+          </label>
+          <button id="so-triage-load">Load findings</button>
+        </div>
+        <div id="so-triage"></div>
+      </section>
+
+      <!-- DETONATIONS (v1.10) -->
+      <section class="panel hidden" id="panel-detonations">
+        <h1>Detonations <span class="muted">(v1.10 — sandbox traces)</span></h1>
+        <p class="muted" style="max-width:760px">
+          One row per <strong>VM sandbox run</strong> ingested via
+          <code>POST /api/scan/external/sandbox</code>. Each detonation
+          carries the sample SHA-256, the tool that ran it (Cuckoo / Joe /
+          VMRay / ANY.RUN / your own), and the signatures it fired. We do
+          not run the sandbox or grade severity — we persist what the
+          report said.
+        </p>
+
+        <div class="dropzone" data-mode="sandbox" id="det-dropzone">
+          <svg class="icon icon-lg"><use href="#i-upload"/></svg>
+          <div class="dropzone-title">Drop a sandbox report (Cuckoo JSON or generic envelope)</div>
+          <div class="dropzone-sub">Or <label class="link-btn">choose a file<input type="file" accept=".json" hidden></label> — auto-detects format.</div>
+          <div class="dropzone-status" id="det-dropzone-status"></div>
+        </div>
+
+        <div class="toolbar">
+          <button id="det-refresh">Refresh</button>
+          <span id="det-count" class="muted"></span>
+        </div>
+
+        <div id="det-list"></div>
+
+        <div id="det-detail" class="hidden">
+          <h2>Detonation <span id="det-detail-id"></span>
+            <span class="muted" id="det-detail-sample" style="font-family:var(--mono);font-size:12px"></span>
+          </h2>
+          <div id="det-detail-meta" class="muted" style="font-size:12px;margin-bottom:8px"></div>
+          <div id="det-detail-signatures"></div>
+        </div>
+      </section>
+
+      <!-- ABOUT (v1.10 rewrite: plain English for Maya, per BRAND.md §4) -->
+      <section class="panel hidden" id="panel-about">
+        <h1>About AgentMonitor</h1>
+
+        <p class="about-lede">
+          AgentMonitor is a free desktop app that records every move your
+          AI agent makes — so when it does something weird, you can rewind
+          and see exactly what happened.
+        </p>
+
+        <h2>Why this exists</h2>
+        <p>
+          Once at 3am, an AI agent had been running unattended for six hours.
+          When I came back there were 47 files changed, a $90 OpenAI bill,
+          three commits I didn't recognize, and a tweet drafted in my
+          scheduling queue. I had no idea what it had done.
+        </p>
+        <p>I wanted a dashcam for my AI agents. So I built one.</p>
+
+        <h2>What it does</h2>
+        <ol class="about-three">
+          <li>
+            <strong>Record.</strong> Every agent run is captured
+            automatically — prompts, tool calls, files touched, tokens
+            spent, money burned.
+          </li>
+          <li>
+            <strong>Replay.</strong> Open any past run and scroll through
+            it like a video.
+          </li>
+          <li>
+            <strong>Rewind.</strong> When something goes wrong, you have
+            the receipts.
+          </li>
+        </ol>
+
+        <h2>What it works with</h2>
+        <p>Cursor, Claude Code, OpenAI, Anthropic, LangChain, AutoGen,
+          Smolagents, Ollama, and any custom agent you've built. No code
+          changes needed.</p>
+
+        <h2>Where your data lives</h2>
+        <p><strong>On your machine. Only on your machine.</strong>
+          AgentMonitor is a desktop app. It does not send your prompts,
+          your code, or your agent's data to any cloud. No signup. No
+          telemetry. No account.</p>
+
+        <h2>What it costs</h2>
+        <p><strong>Free.</strong> Forever, for the core features in the
+          <em>Recorder</em> and <em>Insights</em> groups. The features
+          marked <span class="pro-badge">PRO</span> in the sidebar will
+          become paid later for teams — but during beta everything is
+          free and unrestricted.</p>
+
+        <h2>Honest notes for power users</h2>
+        <p class="muted">These caveats matter if you're building on top of
+          AgentMonitor. Skip if you're just here to record agents.</p>
+        <ul class="muted" style="font-size:12.5px">
+          <li>Model-internals probes (the <em>Interp</em> panel) only work
+            on our bundled Qwen runtime. Other runtimes get text-level
+            safety probes only.</li>
+          <li>Behavior probes (harm / refusal / hedging) were trained on
+            small datasets (16–24 examples each). Useful drift signals,
+            not safety proofs.</li>
+          <li>AutoGen and Smolagents adapters work post-hoc — they ingest
+            the agent's own conversation memory after the run finishes,
+            not during.</li>
+        </ul>
+
+        <h2>Who made this</h2>
+        <p>
+          AgentMonitor is made by <strong>CogniGuard&nbsp;AI</strong> &mdash;
+          a small team building developer tools for the AI-agent era.
+          AgentMonitor is our flagship product.
+        </p>
+        <p class="muted" style="font-size:12.5px">
+          Website: <a href="https://cogniguardai.com/" target="_blank" rel="noopener">cogniguardai.com</a>
+          &nbsp;·&nbsp;
+          Email: <a href="mailto:hello@cogniguardai.com">hello@cogniguardai.com</a>
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer class="footer-strip" id="footer-strip">
+    <span><span class="ftk">agents</span><span class="ftv" id="f-agents">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">runs</span><span class="ftv" id="f-runs">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">errors</span><span class="ftv" id="f-errors">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">harm-flagged</span><span class="ftv" id="f-harm">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">llama-guard</span><span class="ftv" id="f-lg">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">nla</span><span class="ftv" id="f-nla">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">ollama</span><span class="ftv" id="f-ollama">—</span></span>
+    <span class="sep">·</span>
+    <span><span class="ftk">browser</span><span class="ftv" id="f-browser">—</span></span>
+    <span class="spacer"></span>
+    <span><span class="ftk">uptime</span><span class="ftv" id="f-uptime">—</span></span>
+  </footer>
+
+  <div id="toast-root" class="toast-root"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

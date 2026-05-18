@@ -1,0 +1,1184 @@
+/* =============================================================
+   AgentMonitor UI — visual language distilled from:
+     - Claude Code "Claude Board"     (pure black, amber accent,
+                                       tiny letter-spaced uppercase
+                                       section labels, big mono numerics,
+                                       left text-only nav, footer mono
+                                       status strip)
+     - OpenAI Codex dashboard         (icon-thin sidebar, donut chart
+                                       headline tiles in a clean grid)
+     - Hermes Agent                   (status chips with coloured dots,
+                                       OAUTH-style provider rows)
+     - OpenClaw "After" overhaul      (left accent bar on active item,
+                                       grouped sidebar sections)
+     - GitHub Copilot CLI splash      (mac chrome dots above the
+                                       terminal-style trace feed)
+   ------------------------------------------------------------- */
+
+:root {
+  --bg:           #000;
+  --bg-1:         #0a0a0a;
+  --bg-2:         #111114;
+  --surface:      #111114;
+  --surface-2:    #17171c;
+  --border:       #1f1f25;
+  --border-2:     #2a2a32;
+  --text:         #e9e9ea;
+  --text-mute:    #8a8a92;
+  --text-dim:     #5b5b63;
+
+  --accent:       #ff9a3c;   /* Claude Board amber */
+  --accent-soft:  #ff9a3c22;
+  --accent-edge:  #ff9a3c66;
+
+  --good:         #4ed18a;   /* mint */
+  --warn:         #ffb84a;
+  --bad:          #ff6961;   /* coral */
+  --info:         #6aa9ff;
+
+  --mono: "JetBrains Mono", "SF Mono", "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, pre, .mono { font-family: var(--mono); }
+code {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.88em;
+  color: var(--text);
+}
+
+.hidden { display: none !important; }
+.muted  { color: var(--text-mute); }
+.dim    { color: var(--text-dim); }
+.spacer { flex: 1; }
+
+/* Tiny letter-spaced uppercase section labels (Claude Board / Codex) */
+.eyebrow, .card .label, .score-card .label, th, .panel h2 {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--text-mute);
+}
+
+/* ============================================================
+   Top bar
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+  height: 48px;
+}
+
+.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand-mark {
+  color: var(--accent);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  font-family: var(--mono);
+}
+.brand-text { font-weight: 600; letter-spacing: 0.4px; font-size: 14px; }
+.brand-sub  { color: var(--text-mute); font-size: 11px; font-family: var(--mono); letter-spacing: 0.05em; }
+/* Tiny parent-brand byline. Deliberately understated -- BRAND.md §0
+   says the in-app surface stays product-first. */
+.brand-by {
+  color: var(--text-dim);
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  align-self: center;
+}
+.brand-by a {
+  color: var(--text-mute);
+  text-decoration: none;
+  font-weight: 500;
+}
+.brand-by a:hover { color: var(--accent); }
+@media (max-width: 880px) { .brand-by { display: none; } }
+
+.topbar-status { display: flex; gap: 6px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-mute);
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+.pill::before {
+  content: "";
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 999px;
+  background: var(--text-dim);
+}
+.pill em { font-style: normal; color: var(--text); }
+.pill.ok::before   { background: var(--good); box-shadow: 0 0 6px var(--good); }
+.pill.bad::before  { background: var(--bad);  box-shadow: 0 0 6px var(--bad); }
+.pill.warn::before { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.layout {
+  display: grid;
+  grid-template-columns: 188px 1fr;
+  height: calc(100vh - 48px - 26px);  /* topbar 48 + footer 26 */
+}
+
+.sidebar {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 16px 10px;
+  display: flex; flex-direction: column;
+  gap: 1px;
+}
+
+.nav-link {
+  position: relative;
+  padding: 7px 12px 7px 16px;
+  color: var(--text-mute);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+}
+.nav-link:hover { color: var(--text); text-decoration: none; background: var(--bg-2); }
+.nav-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.main { padding: 26px 32px 28px; overflow-y: auto; background: var(--bg); }
+.panel h1 {
+  margin: 0 0 18px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.panel h2 {
+  margin-top: 26px; margin-bottom: 10px;
+  font-size: 11px;
+}
+
+/* ============================================================
+   Toolbars / forms
+   ============================================================ */
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0 14px; flex-wrap: wrap;
+}
+.toolbar label { display: inline-flex; gap: 6px; align-items: center; color: var(--text-mute); font-size: 12px; }
+.row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+
+input[type=text], input[type=number], select, textarea {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-edge);
+  background: var(--bg-1);
+}
+textarea { width: 100%; resize: vertical; }
+
+button {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  padding: 6px 14px;
+  font: inherit; font-size: 12.5px;
+  cursor: pointer;
+  font-family: var(--mono);
+  letter-spacing: 0.03em;
+  transition: border-color 120ms, color 120ms, background 120ms;
+}
+button:hover {
+  color: var(--accent);
+  border-color: var(--accent-edge);
+  background: var(--accent-soft);
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* range chip cluster (Claude Analytics 7d/30d/90d) */
+.chips { display: inline-flex; gap: 2px; padding: 2px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 999px; }
+.chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: var(--text-mute);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.chip:hover { color: var(--text); }
+.chip.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Cards (KPI tiles à la Claude Board / Codex)
+   ============================================================ */
+.cards {
+  display: grid; gap: 1px;
+  margin: 6px 0 22px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.card {
+  background: var(--bg);
+  padding: 16px 18px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 92px;
+}
+/* .card .label uses the generic eyebrow rule above; no extra styling here. */
+.card .value {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.card .sub { color: var(--text-mute); font-size: 11.5px; font-family: var(--mono); margin-top: auto; }
+
+/* stand-alone card (memory add panel etc.) */
+.card.standalone {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-1);
+  padding: 14px;
+  margin: 10px 0;
+}
+
+/* contextual banner (e.g. NLA backend status) */
+.banner {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-mute);
+  border-radius: 4px;
+  background: var(--bg-1);
+  padding: 10px 12px;
+  margin: 8px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.banner.good  { border-left-color: var(--good); }
+.banner.amber { border-left-color: var(--warn); }
+.banner.bad   { border-left-color: var(--bad); }
+
+/* abstention + confidence interval markers in NLA score cards */
+.score-card.abstain { opacity: 0.7; border-style: dashed; }
+.score-card.abstain .value { color: var(--text-mute); font-size: 14px; font-style: italic; }
+.score-card .score-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-top: 2px;
+  letter-spacing: 0.4px;
+}
+
+/* inline button used inside banners (e.g. enable local activations) */
+.inline-btn {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: 4px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+  background: transparent;
+  color: var(--accent, var(--text));
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.inline-btn:hover:not(:disabled) { background: var(--bg-2); }
+.inline-btn:disabled { opacity: 0.6; cursor: progress; }
+
+.chip-good { color: var(--good); font-family: var(--mono); font-size: 11px; }
+
+/* ============================================================
+   Tables
+   ============================================================ */
+table {
+  width: 100%; border-collapse: collapse;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12.5px;
+}
+th, td {
+  padding: 9px 14px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  background: var(--bg-1);
+  font-weight: 500;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg-1); }
+.td-mono { font-family: var(--mono); }
+.td-num  { font-family: var(--mono); text-align: right; }
+
+/* status badges */
+.badge {
+  display: inline-block;
+  padding: 1px 8px; border-radius: 3px;
+  font-size: 10.5px; font-family: var(--mono);
+  border: 1px solid var(--border-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mute);
+}
+.badge.done    { color: var(--good); border-color: var(--good); }
+.badge.error   { color: var(--bad);  border-color: var(--bad); }
+.badge.running { color: var(--warn); border-color: var(--warn); }
+.badge.pending { color: var(--text-dim); }
+
+/* harm cell coloring */
+.harm-low  { color: var(--text-mute); }
+.harm-mid  { color: var(--warn); }
+.harm-high { color: var(--bad); font-weight: 600; }
+
+/* ============================================================
+   Live trace feed — Copilot-CLI style terminal block
+   ============================================================ */
+.trace-feed {
+  background: #050505;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 0;
+  height: 60vh; overflow: hidden;
+  margin-top: 12px;
+  display: flex; flex-direction: column;
+}
+/* fake mac traffic-light dots header — direct nod to Copilot CLI splash */
+.trace-feed::before {
+  content: "● ● ●";
+  letter-spacing: 4px;
+  color: #4a4a4a;
+  font-size: 10px;
+  padding: 6px 12px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  display: block;
+}
+.trace-feed > .trace-rows {
+  flex: 1; overflow-y: auto;
+  padding: 10px 14px;
+}
+.trace-row {
+  padding: 3px 0;
+  display: grid;
+  grid-template-columns: 50px 92px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.trace-row .seq  { color: var(--text-dim); }
+.trace-row .kind {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+.trace-row.kind-error  .kind { color: var(--bad); }
+.trace-row.kind-interp .kind { color: var(--warn); }
+.trace-row.kind-kairos .kind { color: var(--good); }
+.trace-row.kind-model_call     .kind { color: var(--info); }
+.trace-row.kind-model_response .kind { color: var(--info); }
+.trace-row pre {
+  margin: 0; color: var(--text);
+  white-space: pre-wrap; word-break: break-word;
+  font-size: 11.5px;
+}
+
+/* ============================================================
+   Screenshot viewer
+   ============================================================ */
+#br-shot-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-1);
+  max-height: 70vh;
+  text-align: center;
+}
+#br-shot-img { max-width: 100%; display: block; margin: 0 auto; }
+
+/* ============================================================
+   Memory chunks
+   ============================================================ */
+.mem-chunk {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  padding: 10px 14px; margin: 8px 0;
+  background: var(--bg-1);
+}
+.mem-chunk header {
+  display: flex; gap: 12px; align-items: baseline;
+  font-size: 11px; color: var(--text-mute); font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.mem-chunk .chunk-text { margin-top: 6px; white-space: pre-wrap; }
+.mem-chunk .score { color: var(--good); font-weight: 600; }
+
+/* ============================================================
+   Interp score grid (Llama Guard + toy drift)
+   ============================================================ */
+.score-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  margin-top: 16px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.score-card {
+  background: var(--bg);
+  padding: 14px 16px;
+}
+.score-card .label {
+  font-size: 10px;
+  margin-bottom: 6px;
+}
+.score-card .value {
+  font-size: 30px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.score-card.high .value { color: var(--bad); }
+.score-card.mid  .value { color: var(--warn); }
+.score-card.low  .value { color: var(--good); }
+
+/* ============================================================
+   Footer status strip — the Claude Board "live counters" line.
+   Single horizontal mono row of `key:value · key:value · …`.
+   ============================================================ */
+.footer-strip {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: 26px;
+  display: flex; align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  z-index: 9;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.footer-strip .ftk { color: var(--text-dim); text-transform: uppercase; }
+.footer-strip .ftv { color: var(--text); margin-left: 6px; }
+.footer-strip .ftv.amber { color: var(--accent); }
+.footer-strip .ftv.good  { color: var(--good); }
+.footer-strip .ftv.bad   { color: var(--bad); }
+.footer-strip .sep { color: var(--text-dim); }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .score-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-strip { font-size: 10px; gap: 10px; }
+}
+
+
+
+/* ---- code scan (v1.5) ---- */
+.cs-sev {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  color: #fff; font-weight: 600; font-size: 11px; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.cs-kind { font-family: monospace; font-size: 12px; color: #475569; }
+.cs-loc  { font-size: 12px; color: #1e3a8a; }
+.cs-status { padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+.cs-status-running   { background: #fef3c7; color: #78350f; }
+.cs-status-done      { background: #d1fae5; color: #065f46; }
+.cs-status-error     { background: #fee2e2; color: #7f1d1d; }
+.cs-status-cancelled { background: #e5e7eb; color: #374151; }
+.cs-status-queued    { background: #dbeafe; color: #1e3a8a; }
+.cs-histogram {
+  display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap;
+}
+.cs-hist-bucket {
+  color: #fff; padding: 4px 10px; border-radius: 3px; font-size: 12px;
+  font-weight: 600;
+}
+.cs-finding {
+  border: 1px solid #e5e7eb; border-radius: 6px;
+  padding: 10px 12px; margin: 10px 0; background: #fafafa;
+}
+.cs-finding-head {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.cs-excerpt {
+  background: #1e293b; color: #f1f5f9; padding: 8px 10px;
+  border-radius: 4px; overflow-x: auto; margin: 6px 0;
+  font-size: 12px; line-height: 1.4;
+}
+.cs-excerpt code { color: inherit; background: transparent; }
+.cs-explain { font-size: 13px; color: #1f2937; margin-top: 4px; }
+.cs-chunk-summary { font-size: 11px; margin-top: 4px; font-style: italic; }
+.nla-banner.amber {
+  background: #fffbeb; border: 1px solid #fcd34d; color: #78350f;
+  padding: 10px 12px; border-radius: 4px; margin: 10px 0;
+}
+
+/* runtime kind pills (universal agent monitoring) */
+span.kind-pill {
+  display: inline-block; padding: 1px 7px; border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; line-height: 1.5;
+  background: #2a2f3a; color: #cfd3dc; border: 1px solid #3a4150;
+}
+span.kind-pill.kind-qwen-vllm  { background:#1f3a2a; color:#9be7b6; border-color:#2c5a40; }
+span.kind-pill.kind-ollama     { background:#2a2438; color:#c9b8ff; border-color:#473961; }
+span.kind-pill.kind-openai     { background:#1f3231; color:#7fdcce; border-color:#2c4f4d; }
+span.kind-pill.kind-anthropic  { background:#3a2a1f; color:#f0b78a; border-color:#5a4030; }
+span.kind-pill.kind-langchain  { background:#1f2a3a; color:#8db8ff; border-color:#2c4060; }
+span.kind-pill.kind-autogen    { background:#2f1f3a; color:#d49bff; border-color:#4a2c60; }
+span.kind-pill.kind-smolagents { background:#3a1f2a; color:#ff9bb8; border-color:#5a2c40; }
+
+
+span.kind-pill.kind-tournament { background:#1f3a3a; color:#9bd6e7; border-color:#2c5a5a; }
+span.kind-pill.kind-pipeline   { background:#3a3a1f; color:#e7d99b; border-color:#5a5a2c; }
+
+
+span.kind-pill.kind-sandbox    { background:#2a3a1f; color:#bce79b; border-color:#3f5a2c; }
+
+
+/* ============================================================
+   v1.10 UI overhaul — icons, grouped nav, empty states,
+   drag-and-drop ingest, toasts, detonations panel.
+   Everything in this block is additive and namespaced; older
+   selectors above are unchanged so we don't regress existing
+   panels.
+   ============================================================ */
+
+/* --- Lucide icon system ------------------------------------------ */
+/* Lucide SVGs use stroke, not fill -- inherit currentColor so each
+   nav item / button styles its icon without per-icon CSS. */
+.icon {
+  width: 14px; height: 14px;
+  display: inline-block;
+  vertical-align: -2px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-xs { width: 11px; height: 11px; }
+.icon-lg { width: 32px; height: 32px; stroke-width: 1.6; }
+.icon-xl { width: 44px; height: 44px; stroke-width: 1.4; }
+
+.brand-icon {
+  width: 18px; height: 18px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -3px;
+  margin-right: 2px;
+}
+
+/* --- Grouped sidebar --------------------------------------------- */
+.sidebar { gap: 14px; padding: 14px 8px; }
+.nav-group { display: flex; flex-direction: column; gap: 1px; }
+.nav-group-label {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  padding: 4px 14px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.nav-group-label .icon { opacity: 0.7; }
+
+.nav-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 14px;
+}
+.nav-link .icon { opacity: 0.8; }
+.nav-link.active .icon { opacity: 1; color: var(--accent); }
+.nav-link:hover .icon { opacity: 1; }
+
+/* --- Empty state ------------------------------------------------- */
+/* Centered "nothing here yet — try this" card. Used by every panel
+   when its data source is empty. Replaces the old "<p class=muted>
+   No agents have run yet.</p>" pattern. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 24px;
+  margin: 16px 0;
+  border: 1px dashed var(--border-2);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--bg-1), var(--bg));
+  gap: 8px;
+  color: var(--text-mute);
+}
+.empty-state .icon-xl { color: var(--text-dim); margin-bottom: 4px; }
+.empty-state-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.empty-state-body {
+  max-width: 540px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.empty-state-actions {
+  display: flex; gap: 8px; margin-top: 10px;
+}
+.empty-state-actions button { font-size: 12px; }
+.empty-state code {
+  font-size: 11.5px;
+  background: var(--bg-2);
+}
+
+/* --- Drag-and-drop ingest zone ---------------------------------- */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 22px 18px;
+  margin: 12px 0 18px;
+  border: 1px dashed var(--border-2);
+  border-radius: 8px;
+  background: var(--bg-1);
+  gap: 6px;
+  cursor: copy;
+  transition: border-color 120ms, background 120ms, color 120ms;
+}
+.dropzone:hover {
+  border-color: var(--accent-edge);
+  background: var(--accent-soft);
+}
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.dropzone.dragover .icon-lg { color: var(--accent); }
+.dropzone .icon-lg { color: var(--text-mute); }
+.dropzone-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+.dropzone-sub {
+  font-size: 12px;
+  color: var(--text-mute);
+  max-width: 560px;
+}
+.dropzone-status {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+.dropzone-status.good { color: var(--good); }
+.dropzone-status.bad  { color: var(--bad); }
+.dropzone-status.warn { color: var(--warn); }
+.link-btn {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--accent); filter: brightness(1.15); }
+
+/* --- info disclosure (replaces always-visible amber banners) ---- */
+.info-disclosure {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-1);
+  padding: 4px 12px;
+  margin: 0 0 14px;
+}
+.info-disclosure > summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-size: 12px;
+  list-style: none;
+}
+.info-disclosure > summary::-webkit-details-marker { display: none; }
+.info-disclosure > summary::before {
+  content: "\25B8  ";
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-right: 4px;
+}
+.info-disclosure[open] > summary::before { content: "\25BE  "; }
+.info-disclosure-body {
+  padding: 8px 0 10px;
+  font-size: 12.5px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  line-height: 1.55;
+}
+
+/* --- Toast notifications ---------------------------------------- */
+.toast-root {
+  position: fixed;
+  right: 18px; bottom: 38px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 240px; max-width: 360px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-2);
+  border-left-width: 3px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 12.5px;
+  display: flex; align-items: start; gap: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  animation: toast-in 160ms ease-out;
+}
+.toast.good { border-left-color: var(--good); }
+.toast.warn { border-left-color: var(--warn); }
+.toast.bad  { border-left-color: var(--bad); }
+.toast .icon { color: var(--text-mute); margin-top: 1px; }
+.toast.good .icon { color: var(--good); }
+.toast.warn .icon { color: var(--warn); }
+.toast.bad  .icon { color: var(--bad); }
+.toast-title { font-weight: 600; }
+.toast-body  { color: var(--text-mute); margin-top: 2px; font-size: 11.5px; }
+@keyframes toast-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* --- Detonations panel ----------------------------------------- */
+.det-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-1);
+  margin: 8px 0;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+.det-card:hover {
+  border-color: var(--accent-edge);
+  background: var(--bg-2);
+}
+.det-card .det-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--accent);
+}
+.det-card .det-icon .icon { width: 18px; height: 18px; }
+.det-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.det-tool {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-mute);
+}
+.det-sample {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.det-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex; gap: 14px; flex-wrap: wrap;
+}
+.det-sev-row {
+  display: flex; gap: 4px; align-items: center;
+}
+.det-sev-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border-2);
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+.det-sev-chip.has { color: var(--text); }
+.det-sev-chip.critical.has { color: #fff; background: #b91c1c; border-color: #b91c1c; }
+.det-sev-chip.high.has     { color: #fff; background: #dc2626; border-color: #dc2626; }
+.det-sev-chip.medium.has   { color: #000; background: #f59e0b; border-color: #f59e0b; }
+.det-sev-chip.low.has      { color: #000; background: #facc15; border-color: #facc15; }
+.det-sev-chip.info.has     { color: var(--text); background: var(--bg-2); }
+
+.det-sig {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-2);
+  border-radius: 4px;
+  background: var(--bg-1);
+  margin: 8px 0;
+}
+.det-sig.sev-critical { border-left-color: #b91c1c; }
+.det-sig.sev-high     { border-left-color: #dc2626; }
+.det-sig.sev-medium   { border-left-color: #f59e0b; }
+.det-sig.sev-low      { border-left-color: #facc15; }
+.det-sig.sev-info     { border-left-color: var(--border-2); }
+.det-sig-head {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.det-sig-rule  { font-family: var(--mono); font-size: 11.5px; color: var(--text); font-weight: 600; }
+.det-sig-cat   { font-family: var(--mono); font-size: 10.5px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em; }
+.det-sig-msg   { font-size: 12.5px; color: var(--text); }
+.det-sig-ev    {
+  font-family: var(--mono); font-size: 11.5px;
+  background: var(--bg-2); padding: 6px 9px;
+  border-radius: 3px; border: 1px solid var(--border);
+  color: var(--text); margin-top: 6px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 120px; overflow-y: auto;
+}
+
+/* =============================================================
+   v1.10 PRO badge + Welcome panel
+   ------------------------------------------------------------- */
+
+/* PRO badge -- tiny uppercase pill used in the sidebar group label
+   and inline in the About panel. Amber on amber-soft so it reads as
+   "premium" without screaming for attention. */
+.pro-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-edge);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* Welcome panel -- the new default landing.
+   The layout is: centered hero -> three "Record / Replay / Rewind"
+   cards -> three-up trust strip -> runtime-state card. */
+#panel-welcome {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 8px 0 40px 0;
+}
+
+.welcome-hero {
+  text-align: center;
+  padding: 32px 24px 28px 24px;
+}
+.welcome-hero h1 {
+  font-size: 32px;
+  line-height: 1.2;
+  margin: 14px 0 12px 0;
+  letter-spacing: -0.01em;
+}
+.welcome-icon {
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+  display: inline-block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.welcome-sub {
+  max-width: 640px;
+  margin: 0 auto 22px auto;
+  color: var(--text-mute);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.welcome-cta {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.welcome-cta-primary,
+.welcome-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 80ms ease, background 120ms ease,
+              border-color 120ms ease, color 120ms ease;
+}
+.welcome-cta-primary {
+  background: var(--accent);
+  color: #1a0e00;
+  border: 1px solid var(--accent);
+}
+.welcome-cta-primary:hover  { transform: translateY(-1px); background: #ffb066; }
+.welcome-cta-primary:active { transform: translateY(0); }
+.welcome-cta-primary[disabled] { opacity: 0.55; cursor: progress; transform: none; }
+.welcome-cta-primary .icon  { width: 14px; height: 14px; stroke-width: 2; }
+
+.welcome-cta-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-2);
+}
+.welcome-cta-secondary:hover {
+  border-color: var(--accent-edge);
+  color: var(--accent);
+}
+.welcome-cta-secondary[disabled] { opacity: 0.55; cursor: progress; }
+
+/* Three-up "Record / Replay / Rewind" cards. */
+.welcome-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 24px 0 8px 0;
+}
+@media (max-width: 880px) {
+  .welcome-three { grid-template-columns: 1fr; }
+}
+.welcome-card {
+  position: relative;
+  padding: 20px 18px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.welcome-card h3 {
+  margin: 12px 0 6px 0;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+}
+.welcome-card p {
+  margin: 0;
+  color: var(--text-mute);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.welcome-card-num {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+.welcome-card-icon {
+  width: 22px; height: 22px;
+  color: var(--accent);
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Trust strip -- "100% on your machine / Free / Works with what you use" */
+.welcome-trust {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 22px 0 18px 0;
+}
+@media (max-width: 880px) {
+  .welcome-trust { grid-template-columns: 1fr; }
+}
+.welcome-trust-item {
+  font-size: 12.5px;
+  color: var(--text-mute);
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--bg-1);
+  line-height: 1.5;
+}
+.welcome-trust-item strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+/* Runtime-state container -- filled by app.js with either the
+   populated-status card (runs > 0) or the inline quick-start. */
+.welcome-state { margin-top: 8px; }
+
+.welcome-status {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.welcome-status.good { border-left: 3px solid var(--good); }
+.welcome-status .icon {
+  width: 22px; height: 22px;
+  color: var(--good);
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.welcome-status-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.welcome-status-body {
+  font-size: 12.5px;
+  color: var(--text-mute);
+  margin-top: 2px;
+}
+.welcome-status-actions {
+  display: flex;
+  gap: 8px;
+}
+.welcome-status-actions button {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-2);
+  border-radius: 5px;
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+.welcome-status-actions button:first-child {
+  background: var(--accent-soft);
+  border-color: var(--accent-edge);
+  color: var(--accent);
+}
+.welcome-status-actions button:hover {
+  border-color: var(--accent-edge);
+  color: var(--accent);
+}
+
+.welcome-quickstart {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.welcome-qs-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.welcome-qs-steps {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-mute);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.welcome-qs-steps li { margin: 6px 0; }
+.welcome-qs-steps li strong { color: var(--text); }
+.welcome-qs-code {
+  margin: 6px 0 4px 0;
+  padding: 9px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.welcome-qs-hint {
+  margin: 10px 0 0 0;
+  font-size: 12px;
+}
+
