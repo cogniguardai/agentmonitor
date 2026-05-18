@@ -777,7 +777,7 @@
       <a href="#pricing">Pricing</a>
       <a href="#install">Install</a>
       <a href="#faq">FAQ</a>
-      <a class="cta" href="#install">Download</a>
+      <a class="cta" href="https://github.com/cogniguardai/agentmonitor" rel="noopener">&#x2B50; Star on GitHub</a>
     </nav>
   </div>
 </header>
@@ -786,19 +786,19 @@
 <a id="top"></a>
 <section class="hero">
   <div class="wrap reveal">
-    <div class="hero-eyebrow">Flight recorder for AI agents · by CogniGuard&nbsp;AI</div>
+    <div class="hero-eyebrow">Flight recorder for AI agents &middot; by CogniGuard&nbsp;AI &middot; <span style="color:#a5b4fc;">v0.1.0 launching soon</span></div>
     <h1>See what your AI agent <span class="accent">actually did.</span></h1>
     <p class="hero-sub">
-      AgentMonitor records every move your AI agent makes —
+      AgentMonitor will record every move your AI agent makes &mdash;
       the prompts, the tools it called, the files it touched, the
-      money it spent — so when it does something weird, you can
+      money it spent &mdash; so when it does something weird, you can
       rewind and see exactly what happened.
     </p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="#install">Download for free</a>
-      <a class="btn btn-ghost"   href="#demo">See how it works ↓</a>
+      <a class="btn btn-primary" href="https://github.com/cogniguardai/agentmonitor" rel="noopener">&#x2B50; Star on GitHub</a>
+      <a class="btn btn-ghost"   href="#demo">See how it works &darr;</a>
     </div>
-    <div class="hero-tiny">Local-first · No signup · Free forever during beta</div>
+    <div class="hero-tiny">Local-first &middot; No signup &middot; Free forever &middot; Open source (MIT)</div>
   </div>
 </section>
 
@@ -1067,27 +1067,30 @@
 <!-- ============================== INSTALL ============================= -->
 <section id="install" class="install">
   <div class="wrap reveal">
-    <h2>Start recording in 60 seconds.</h2>
+    <div style="display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: #a5b4fc; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 18px; border: 1px solid rgba(99,102,241,0.3);">
+      &#x2728; Pre-release &mdash; v0.1.0 launching soon
+    </div>
+    <h2>Soon: start recording in 60 seconds.</h2>
     <p>
-      AgentMonitor is a normal Python package. Install it,
-      wrap your agent call once, refresh the dashboard.
-      <strong style="color: var(--text);">100% local. No signup. No telemetry.</strong>
+      AgentMonitor is in active development. The PyPI namespace
+      <a href="https://pypi.org/project/cogniguardai/" style="color: var(--text); text-decoration: underline; text-underline-offset: 3px;"><code>cogniguardai</code></a>
+      is reserved; the first functional release lands as <strong style="color: var(--text);">v0.1.0</strong>.
+      Star the repo to get notified when it ships.
+      <br/><strong style="color: var(--text);">100% local. No signup. No telemetry.</strong> Forever.
     </p>
 
     <div class="install-code">
       <button class="install-copy" id="copy-btn" aria-label="copy install command">copy</button>
-      <div><span class="prompt">$ </span><span class="cmd">pip install cogniguardai</span></div>
-      <div><span class="prompt">$ </span><span class="cmd">agentmonitor</span><span class="muted"> # opens the dashboard at :8765</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">pip install cogniguardai</span><span class="muted"> # works today (placeholder), full release in v0.1.0</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">agentmonitor</span><span class="muted"> # available in v0.1.0 &mdash; opens the dashboard at :8765</span></div>
     </div>
 
     <div class="install-alt">
-      <!-- LAUNCH-TODO: wire #dl-win href to the Windows installer URL
-           once a GitHub release with the .exe artefact is published. Suggested:
-             1. https://github.com/cogniguardai/agentmonitor/releases/latest
-             2. Direct .exe URL on the GitHub release
-           Until then, this anchor is a safe no-op (#). -->
-      <a class="btn btn-ghost"   href="#" id="dl-win">Download for Windows</a>
-      <a class="btn btn-ghost"   href="https://github.com/cogniguardai/agentmonitor" rel="noopener">GitHub repo</a>
+      <a class="btn btn-primary" href="https://github.com/cogniguardai/agentmonitor" rel="noopener">&#x2B50; Star on GitHub</a>
+      <a class="btn btn-ghost"   href="https://github.com/cogniguardai/agentmonitor/subscription" rel="noopener">Watch for v0.1.0</a>
+      <!-- LAUNCH-TODO: re-enable Download for Windows once GitHub Release v0.1.0
+           with the .exe artefact is published. Suggested href:
+             https://github.com/cogniguardai/agentmonitor/releases/latest -->
     </div>
   </div>
 </section>
