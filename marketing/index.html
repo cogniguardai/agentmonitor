@@ -880,7 +880,7 @@
         <span class="url">localhost:8765/</span>
       </div>
       <img class="demo-shot" src="screenshot-welcome.png"
-           alt="AgentMonitor dashboard — Welcome panel with Record / Replay / Rewind cards, sidebar grouped Recorder / Insights / Advanced / More, and a quick-start showing 'pip install agent-monitor'."
+           alt="AgentMonitor dashboard — Welcome panel with Record / Replay / Rewind cards, sidebar grouped Recorder / Insights / Advanced / More, and a quick-start showing 'pip install cogniguardai'."
            loading="lazy" decoding="async" />
     </div>
 
@@ -1076,20 +1076,18 @@
 
     <div class="install-code">
       <button class="install-copy" id="copy-btn" aria-label="copy install command">copy</button>
-      <div><span class="prompt">$ </span><span class="cmd">pip install agent-monitor</span></div>
-      <div><span class="prompt">$ </span><span class="cmd">agent-monitor</span><span class="muted"> # opens the dashboard at :8765</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">pip install cogniguardai</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">agentmonitor</span><span class="muted"> # opens the dashboard at :8765</span></div>
     </div>
 
     <div class="install-alt">
-      <!-- LAUNCH-TODO: wire #dl-win href to the Windows installer URL.
-           Suggested options (in order of zero-effort):
-             1. https://github.com/<owner>/<repo>/releases/latest
+      <!-- LAUNCH-TODO: wire #dl-win href to the Windows installer URL
+           once a GitHub release with the .exe artefact is published. Suggested:
+             1. https://github.com/cogniguardai/agentmonitor/releases/latest
              2. Direct .exe URL on the GitHub release
-             3. https://agentmonitor.dev/download/AgentMonitor-Setup.exe
            Until then, this anchor is a safe no-op (#). -->
       <a class="btn btn-ghost"   href="#" id="dl-win">Download for Windows</a>
-      <!-- LAUNCH-TODO: replace https://github.com/ with the real repo URL. -->
-      <a class="btn btn-ghost"   href="https://github.com/" rel="noopener">GitHub repo</a>
+      <a class="btn btn-ghost"   href="https://github.com/cogniguardai/agentmonitor" rel="noopener">GitHub repo</a>
     </div>
   </div>
 </section>
@@ -1281,7 +1279,7 @@
     var btn = document.getElementById('copy-btn');
     if (!btn) return;
     btn.addEventListener('click', function () {
-      var cmd = 'pip install agent-monitor';
+      var cmd = 'pip install cogniguardai';
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(cmd);
       } else {

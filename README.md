@@ -16,9 +16,26 @@ Made by [CogniGuard AI](https://cogniguardai.com/).
 
 ## Install
 
+> **Status:** the PyPI namespace [`cogniguardai`](https://pypi.org/project/cogniguardai/)
+> is reserved (v0.0.1 placeholder). The first functional release lands as
+> **v0.1.0**. Until then, the only working install is from source &mdash;
+> see _Run from source_ below.
+
+When v0.1.0 ships:
+
 ```bash
-pip install agent-monitor
-agent-monitor   # opens the dashboard at http://localhost:8765
+pip install cogniguardai
+agentmonitor   # opens the dashboard at http://localhost:8765
+```
+
+### Run from source (works today)
+
+```bash
+git clone https://github.com/cogniguardai/agentmonitor.git
+cd agentmonitor
+pip install -r requirements.txt
+python -m agent_monitor.run_server
+# then open http://localhost:8765
 ```
 
 ## What it does
