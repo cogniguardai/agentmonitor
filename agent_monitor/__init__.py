@@ -1,24 +1,32 @@
 """
-agent_monitor — self-hosted AI-agents monitoring platform.
+agent_monitor -- a flight recorder for AI agents.
 
-Wraps the existing automations (customer_support, sop_processor, meta_harness)
-with persistent memory, browser automation, live trace capture, and the
-production-grade interp probes (interp/ + interp_real/).
+Records every prompt, tool call, file touched, token spent and dollar
+burned to a local SQLite database, then surfaces it through a self-
+hosted dashboard (FastAPI + a small JS UI). Local-first by design:
+your prompts never leave your machine.
 
-Public modules:
-    db.py        SQLite schema + thin CRUD layer (sync + async)
-    memory.py    Long-term memory store with optional semantic search
-    browser.py   Playwright wrapper (start / navigate / screenshot)
-    runner.py    Wraps existing automations, emits trace events, scores
-                 with interp probes, persists everything to SQLite.
-    interp_bridge.py  Loads the trained probes once, scores text on demand.
-    api.py       FastAPI app (Phase B)
-    desktop.py   pywebview launcher (Phase E)
+Public modules (slim baseline, ships in `pip install cogniguardai`):
+    db.py        SQLite schema + thin CRUD layer
+    runner.py    `MonitoredRun` context manager -- the public SDK
+    api.py       FastAPI dashboard server
+    desktop.py   pywebview launcher (the `agentmonitor` CLI entrypoint)
+    pricing.py   public LLM cost data
+    seed.py      demo data for first-run UX
+    adapters/    LLM-specific wrappers (openai, anthropic, langchain, ...)
 
-Beginner note:
-    Nothing in this package mutates user data outside agent_monitor/data/.
-    The SQLite database lives at agent_monitor/data/monitor.db.
+Optional Phase-2 features (opt-in extras, lazy-loaded by api.py):
+    interp_bridge / memory / nla_*       (`pip install 'cogniguardai[ml]'`)
+    browser.py                           (`pip install 'cogniguardai[browser]'`)
+    code_scan / classifiers              (in source, not yet on PyPI)
+
+Persistent data lives at:
+    1. $AGENT_MONITOR_DATA_DIR if set                (test override)
+    2. %LOCALAPPDATA%/AgentMonitor when frozen       (.exe install)
+    3. agent_monitor/data/                           (dev mode)
 """
+
+__version__ = "0.1.0"
 
 import os
 import sys

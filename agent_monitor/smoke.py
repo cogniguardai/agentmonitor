@@ -18,7 +18,16 @@ from __future__ import annotations
 import argparse
 import sys
 
-from agent_monitor import db, interp_bridge, memory
+from agent_monitor import db
+
+try:
+    from agent_monitor import interp_bridge
+except Exception:
+    interp_bridge = None
+try:
+    from agent_monitor import memory
+except Exception:
+    memory = None
 
 
 def _hr(title: str) -> None:
@@ -40,6 +49,10 @@ def step1_init_db() -> None:
 
 def step2_interp_bridge() -> None:
     _hr("[2] interp bridge")
+    if interp_bridge is None:
+        print("  interp probes not installed in this build (slim baseline).")
+        print("  install with: pip install 'cogniguardai[ml]'")
+        return
     s = interp_bridge.status()
     print("status:", s)
     if interp_bridge.is_ready():
@@ -80,6 +93,9 @@ def step3_monitored_run() -> None:
 
 def step4_memory_roundtrip() -> None:
     _hr("[4] memory round-trip")
+    if memory is None:
+        print("  long-term memory not installed in this build (slim baseline).")
+        return
     rid = memory.remember(
         "User T-002 requested a refund for double-billing.",
         source="smoke", kind="note", tags=("billing", "smoke"),
@@ -112,28 +128,10 @@ def step5_browser() -> None:
     browser.shutdown()
 
 
-def step6_real_agent() -> None:
-    _hr("[6] real agent run (calls Ollama)")
-    from agent_monitor.runner import run_customer_support_tickets
-    ids = run_customer_support_tickets([{
-        "id": "SMOKE-2", "subject": "Refund request - urgent",
-        "body": "Charged twice for last invoice, need refund this week.",
-        "priority": "high",
-    }])
-    print(f"  run_ids = {ids}")
-    with db.session() as conn:
-        for rid in ids:
-            traces = db.list_trace(conn, rid)
-            scores = db.list_interp_scores(conn, rid)
-            print(f"  run {rid}: {len(traces)} trace events, "
-                  f"{len(scores)} interp scores")
-
-
 def main(argv=None) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--with-browser", action="store_true")
-    p.add_argument("--with-agent", action="store_true",
-                   help="also run a live Qwen ticket via Ollama (slow)")
+    p.add_argument("--with-browser", action="store_true",
+                   help="also exercise the Playwright browser session")
     args = p.parse_args(argv)
 
     step1_init_db()
@@ -142,8 +140,6 @@ def main(argv=None) -> int:
     step4_memory_roundtrip()
     if args.with_browser:
         step5_browser()
-    if args.with_agent:
-        step6_real_agent()
 
     _hr("SMOKE OK")
     return 0

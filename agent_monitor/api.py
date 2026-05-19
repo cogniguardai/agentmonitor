@@ -35,14 +35,58 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agent_monitor import db, interp_bridge, memory, nla_client, nla_cache, nla_worker
-from agent_monitor import browser as browser_mod
-from agent_monitor import code_scan as code_scan_mod
+from agent_monitor import db, __version__ as _VERSION
+
+# ---------------------------------------------------------------------------
+# Optional Phase-2 modules (v0.1.0 lazy-loading).
+#
+# The slim `pip install cogniguardai` baseline does NOT bundle the heavier
+# features (interp probes, long-term memory, NLA pipeline, browser
+# automation, code scanning). Those modules either depend on PyTorch /
+# transformers / Playwright, or rely on Mythos-internal infrastructure
+# that isn't redistributable yet.
+#
+# We import them best-effort here. Any module that fails to import
+# becomes None, and every endpoint that touches it goes through
+# `_require()` which raises HTTPException(503) with a clear install hint.
+# The dashboard JS already renders 503 / `_probe_unavailable` cleanly,
+# so the user sees a tidy "feature not in this build" indicator instead
+# of an exception trace.
+# ---------------------------------------------------------------------------
+
+def _try_import(name: str):
+    """Best-effort import. Returns None if the module / its deps are missing."""
+    try:
+        import importlib
+        return importlib.import_module(name)
+    except Exception:
+        return None
+
+
+interp_bridge = _try_import("agent_monitor.interp_bridge")
+memory        = _try_import("agent_monitor.memory")
+nla_client    = _try_import("agent_monitor.nla_client")
+nla_cache     = _try_import("agent_monitor.nla_cache")
+nla_worker    = _try_import("agent_monitor.nla_worker")
+browser_mod   = _try_import("agent_monitor.browser")
+code_scan_mod = _try_import("agent_monitor.code_scan")
+
+
+def _require(mod, feature: str, extra: str = "") -> Any:
+    """Return `mod` if available, otherwise raise 503 with an install hint."""
+    if mod is None:
+        msg = f"The '{feature}' feature is not available in this build."
+        if extra:
+            msg += f" Install with: pip install 'cogniguardai[{extra}]'"
+        else:
+            msg += " Coming in a future release."
+        raise HTTPException(status_code=503, detail=msg)
+    return mod
 
 WEB_DIR = Path(__file__).parent / "web"
 STATIC_DIR = WEB_DIR / "static"
 
-app = FastAPI(title="AgentMonitor", version="1.7.0")
+app = FastAPI(title="AgentMonitor", version=_VERSION)
 
 
 # ---------------------------------------------------------------------------
@@ -66,10 +110,11 @@ def _on_shutdown() -> None:
         pass
     # Drain the NLA worker thread cleanly so the frozen exe exits without
     # leaving zombie threads holding the SQLite connection.
-    try:
-        nla_worker.shutdown(timeout=2.0)
-    except Exception:
-        pass
+    if nla_worker is not None:
+        try:
+            nla_worker.shutdown(timeout=2.0)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +203,9 @@ _PROBE_THREADS: List[threading.Thread] = []
 
 
 def _probe_browser() -> Dict[str, Any]:
+    if browser_mod is None:
+        return {"open": False, "last_url": None, "last_title": None,
+                "_probe_unavailable": True}
     s = browser_mod._SESSION
     if s is None or not s.is_open:
         return {"open": False, "last_url": None, "last_title": None}
@@ -193,15 +241,31 @@ def _probe_worker(name: str, fn) -> None:
 
 
 def _start_probe_workers() -> None:
-    """Spawn one background thread per probe. Idempotent."""
+    """Spawn one background thread per probe. Idempotent.
+
+    Probes for optional Phase-2 modules (interp / nla / browser) are
+    skipped when the module is missing. The corresponding /api/status
+    cache slot is then populated with a stable {"_probe_unavailable":
+    True, ...} stub so the dashboard renders cleanly.
+    """
     if _PROBE_THREADS:           # already started
         return
-    probes = [
-        ("ollama",  _ollama_status),
-        ("interp",  interp_bridge.status),
-        ("nla",     nla_client.status),
-        ("browser", _probe_browser),
-    ]
+    probes: List[tuple] = [("ollama", _ollama_status)]
+    if interp_bridge is not None:
+        probes.append(("interp", interp_bridge.status))
+    else:
+        with _PROBE_LOCK:
+            _PROBE_CACHE["interp"] = {"_probe_unavailable": True,
+                                      "_probe_ts": time.time()}
+    if nla_client is not None:
+        probes.append(("nla", nla_client.status))
+    else:
+        with _PROBE_LOCK:
+            _PROBE_CACHE["nla"] = {"_probe_unavailable": True,
+                                   "_probe_ts": time.time()}
+    # browser probe runs through _probe_browser which already handles
+    # the missing-module case, so we always start it.
+    probes.append(("browser", _probe_browser))
     for name, fn in probes:
         t = threading.Thread(
             target=_probe_worker, args=(name, fn),
@@ -393,7 +457,11 @@ def api_classifier_signatures() -> Dict[str, Any]:
     The UI renders this as a transparency surface: every match the
     classifier reports can be traced back to a public source URL.
     """
-    from agent_monitor.classifiers.offensive_patterns import list_signatures
+    try:
+        from agent_monitor.classifiers.offensive_patterns import list_signatures
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"classifier feature not available: {e}")
     return {"classifier": "offensive_patterns", "signatures": list_signatures()}
 
 
@@ -442,7 +510,11 @@ def api_classifier_replay(body: _ReplayBody) -> Dict[str, Any]:
 
     `only_null=True` skips runs that already have a score (cheaper).
     """
-    from agent_monitor.classifiers.offensive_patterns import classify_run
+    try:
+        from agent_monitor.classifiers.offensive_patterns import classify_run
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"classifier feature not available: {e}")
     where = ["1=1"]
     args: List[Any] = []
     if body.since:
@@ -504,6 +576,7 @@ def api_run_classify(run_id: int) -> Dict[str, Any]:
 
 @app.get("/api/memory")
 def api_memory(q: Optional[str] = None, semantic: bool = False, limit: int = 30) -> Dict[str, Any]:
+    _require(memory, "long-term memory")
     if not q:
         return {"results": memory.list_recent(limit=limit), "mode": "recent"}
     if semantic:
@@ -517,6 +590,7 @@ def api_memory(q: Optional[str] = None, semantic: bool = False, limit: int = 30)
 
 @app.post("/api/memory")
 def api_memory_add(body: MemoryIn) -> Dict[str, Any]:
+    _require(memory, "long-term memory")
     rid = memory.remember(
         body.text, source=body.source, kind=body.kind,
         tags=body.tags, with_vector=body.with_vector,
@@ -530,6 +604,7 @@ def api_memory_add(body: MemoryIn) -> Dict[str, Any]:
 
 @app.get("/api/interp/status")
 def api_interp_status() -> Dict[str, Any]:
+    _require(interp_bridge, "interp probes", "ml")
     out = interp_bridge.status()
     try:
         from agent_monitor import safety_llamaguard
@@ -541,6 +616,7 @@ def api_interp_status() -> Dict[str, Any]:
 
 @app.post("/api/interp/score")
 def api_interp_score(body: ScoreIn) -> Dict[str, Any]:
+    _require(interp_bridge, "interp probes", "ml")
     # Either toy probes or Llama Guard 3 is enough to satisfy a score request.
     toy_ready = interp_bridge.is_ready()
     lg_ready = False
@@ -560,23 +636,28 @@ def api_interp_score(body: ScoreIn) -> Dict[str, Any]:
 
 @app.get("/api/nla/status")
 def api_nla_status() -> Dict[str, Any]:
+    _require(nla_client, "NLA pipeline")
     s = nla_client.status()
-    s["worker"] = nla_worker.stats()
+    if nla_worker is not None:
+        s["worker"] = nla_worker.stats()
     return s
 
 
 @app.get("/api/nla/cache")
 def api_nla_cache() -> Dict[str, Any]:
+    _require(nla_cache, "NLA pipeline")
     return nla_cache.stats()
 
 
 @app.post("/api/nla/cache/clear")
 def api_nla_cache_clear() -> Dict[str, Any]:
+    _require(nla_cache, "NLA pipeline")
     return nla_cache.clear()
 
 
 @app.get("/api/nla/queue")
 def api_nla_queue() -> Dict[str, Any]:
+    _require(nla_worker, "NLA pipeline")
     return nla_worker.stats()
 
 
@@ -591,8 +672,11 @@ def api_nla_local_enable() -> Dict[str, Any]:
         from agent_monitor import transformers_runtime
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"transformers_runtime unavailable: {e}",
+            status_code=503,
+            detail=(
+                f"transformers_runtime unavailable: {e}. "
+                "Install with: pip install 'cogniguardai[ml]'"
+            ),
         )
     err = transformers_runtime.ensure_loaded()
     return {
@@ -604,6 +688,7 @@ def api_nla_local_enable() -> Dict[str, Any]:
 
 @app.post("/api/nla/decode")
 def api_nla_decode(body: NLADecodeIn) -> Dict[str, Any]:
+    _require(nla_client, "NLA pipeline")
     if not nla_client.is_ready():
         raise HTTPException(
             status_code=503,
@@ -668,11 +753,13 @@ class CodeDecodeIn(BaseModel):
 @app.get("/api/scan/status")
 def api_scan_status() -> Dict[str, Any]:
     """Module-level status: model, prompt version, axes, honest caveat."""
+    _require(nla_client, "code scanning")
     return nla_client.code_status()
 
 
 @app.post("/api/scan/start")
 def api_scan_start(body: CodeScanStartIn) -> Dict[str, Any]:
+    _require(code_scan_mod, "code scanning")
     opts: Dict[str, Any] = {}
     for k in ("max_bytes", "max_chunk_lines", "overlap_lines",
               "max_files", "persist_low", "extensions", "git_since"):
@@ -727,7 +814,11 @@ def api_scan_external(body: _ExternalScanIngest) -> Dict[str, Any]:
     AgentMonitor does NOT run the tool, write rules, or interpret what
     each finding means -- we just persist whatever the caller reports.
     """
-    from agent_monitor.adapters.findings import ingest_findings
+    try:
+        from agent_monitor.adapters.findings import ingest_findings
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"external-findings ingestion not available: {e}")
     payload = [f.model_dump() for f in body.findings]
     return ingest_findings(
         tool_name=body.tool_name, root_path=body.root_path,
@@ -765,7 +856,11 @@ def api_scan_external_sarif(body: _SarifIngest) -> Dict[str, Any]:
     findings -- we just persist whatever the SARIF says, normalized to
     our schema so all scanners share one pane of glass.
     """
-    from agent_monitor.adapters.findings import ingest_sarif
+    try:
+        from agent_monitor.adapters.findings import ingest_sarif
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"SARIF ingestion not available: {e}")
     try:
         return ingest_sarif(
             body.sarif,
@@ -816,7 +911,11 @@ def api_scan_external_sandbox(body: _SandboxReportIngest) -> Dict[str, Any]:
     whether something is malicious -- we persist exactly what the
     report said, mapped to our uniform schema.
     """
-    from agent_monitor.adapters.findings import ingest_sandbox_report
+    try:
+        from agent_monitor.adapters.findings import ingest_sandbox_report
+    except Exception as e:
+        raise HTTPException(status_code=503,
+            detail=f"sandbox-report ingestion not available: {e}")
     try:
         return ingest_sandbox_report(
             body.report,
@@ -920,10 +1019,12 @@ def api_scan_detail(scan_id: int) -> Dict[str, Any]:
         if not scan:
             raise HTTPException(status_code=404, detail="scan not found")
         hist = db.code_scan_severity_histogram(conn, scan_id)
+    runtime = (code_scan_mod.runtime_status(scan_id)
+               if code_scan_mod is not None else {"available": False})
     return {
         "scan": scan,
         "histogram": hist,
-        "runtime": code_scan_mod.runtime_status(scan_id),
+        "runtime": runtime,
     }
 
 
@@ -947,6 +1048,7 @@ def api_scan_findings(
 
 @app.post("/api/scan/{scan_id}/cancel")
 def api_scan_cancel(scan_id: int) -> Dict[str, Any]:
+    _require(code_scan_mod, "code scanning")
     ok = code_scan_mod.cancel(scan_id)
     if not ok:
         raise HTTPException(
@@ -959,6 +1061,7 @@ def api_scan_cancel(scan_id: int) -> Dict[str, Any]:
 @app.post("/api/scan/decode")
 def api_scan_decode(body: CodeDecodeIn) -> Dict[str, Any]:
     """One-shot decode: handy for testing the prompt without a full scan."""
+    _require(nla_client, "code scanning")
     result = nla_client.decode_code(
         body.code, language=body.language, path_hint=body.path_hint,
     )
@@ -971,6 +1074,7 @@ def api_scan_decode(body: CodeDecodeIn) -> Dict[str, Any]:
 
 @app.get("/api/browser/status")
 def api_browser_status() -> Dict[str, Any]:
+    _require(browser_mod, "browser automation", "browser")
     s = browser_mod._SESSION
     return {
         "open": s is not None and s.is_open,
@@ -981,18 +1085,21 @@ def api_browser_status() -> Dict[str, Any]:
 
 @app.post("/api/browser/goto")
 def api_browser_goto(body: GotoIn) -> Dict[str, Any]:
+    _require(browser_mod, "browser automation", "browser")
     sess = browser_mod.get_or_start(headless=body.headless)
     return sess.goto(body.url)
 
 
 @app.post("/api/browser/close")
 def api_browser_close() -> Dict[str, Any]:
+    _require(browser_mod, "browser automation", "browser")
     browser_mod.shutdown()
     return {"ok": True}
 
 
 @app.get("/api/browser/screenshot.png")
 def api_browser_screenshot(full_page: bool = False):
+    _require(browser_mod, "browser automation", "browser")
     s = browser_mod._SESSION
     if s is None or not s.is_open:
         raise HTTPException(status_code=409, detail="no browser session open")

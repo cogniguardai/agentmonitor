@@ -25,7 +25,19 @@ import time
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
-from agent_monitor import db, interp_bridge, memory
+from agent_monitor import db
+
+# interp_bridge + memory are optional Phase-2 modules. When missing,
+# scoring and memory persistence become no-ops; runs are still recorded
+# in the SQLite DB (input/output/trace/elapsed).
+try:
+    from agent_monitor import interp_bridge
+except Exception:
+    interp_bridge = None
+try:
+    from agent_monitor import memory
+except Exception:
+    memory = None
 
 # NLA_AUTO_DECODE controls async thought-decoding of run input/output:
 #   off    -- never queue (default; fully back-compat)
@@ -117,7 +129,7 @@ class MonitoredRun:
                 self._score_and_record(conn, "output", self.output_text)
         if "output" in _NLA_AUTO_TARGETS and self.output_text:
             self._enqueue_nla("output", self.output_text)
-        if remember_in_memory and self.output_text:
+        if remember_in_memory and self.output_text and memory is not None:
             try:
                 memory.remember(
                     self.output_text,
@@ -151,6 +163,8 @@ class MonitoredRun:
             pass
 
     def _score_and_record(self, conn, target: str, text: str) -> None:
+        if interp_bridge is None:
+            return  # interp probes not installed; skip scoring
         scores = interp_bridge.score_all(text)
         # Persist only numeric probe scores. `_meta` carries Llama Guard
         # source/category info and goes into the trace event.
@@ -169,74 +183,10 @@ class MonitoredRun:
         })
 
 
-# ---------------------------------------------------------------------------
-# Pre-wired wrapper for the existing customer_support automation.
-# ---------------------------------------------------------------------------
-
-def run_customer_support_tickets(tickets: List[Dict[str, Any]]) -> List[int]:
-    """Process a list of tickets through the existing engine and persist
-    everything. Returns the list of run_ids created.
-
-    Each ticket dict should have keys: id, subject, body, [priority].
-    """
-    # local imports so monitor doesn't pull engine at module-load time
-    import sys
-    from pathlib import Path
-    BASE = Path(__file__).resolve().parent.parent
-    if str(BASE) not in sys.path:
-        sys.path.insert(0, str(BASE))
-
-    from core.engine import RecurrentDepthEngine
-    from core.kairos import KairosController
-    from core.prompts import build_prompt
-    from core.parse_json import extract_first_json_object
-
-    engine = RecurrentDepthEngine(prefer="auto", verbose=False)
-    kairos = KairosController(BASE / "configs" / "adaptive_compute.yaml")
-
-    run_ids: List[int] = []
-
-    for tk in tickets:
-        text = f"{tk.get('subject','')}. {tk.get('body','')}"
-        with MonitoredRun(
-            agent_name="customer_support",
-            agent_description="Triage support tickets via Qwen + KAIROS",
-            input_text=text,
-            external_id=tk.get("id"),
-            meta={
-                "subject": tk.get("subject"),
-                "priority_in": tk.get("priority"),
-            },
-        ) as run:
-            complexity = kairos.detect_complexity(text)
-            loops = kairos.decide_loops(text)
-            run.update_meta(complexity=complexity, loops=loops,
-                            backend=engine.backend)
-            run.trace("kairos", {"complexity": complexity, "loops": loops})
-
-            if engine.backend != "ollama":
-                run.set_output(
-                    "(no model: backend != ollama)",
-                    score=False, remember_in_memory=False,
-                )
-                continue
-
-            prompt = build_prompt("support_triage",
-                "You are a support-ticket triage system. Classify the "
-                "following ticket. Return ONLY a JSON object with fields: "
-                "category (one of auth/billing/technical/feature/retention), "
-                "priority (one of low/medium/high/critical).\n\n"
-                f"Subject: {tk.get('subject','')}\nBody: {tk.get('body','')}"
-            )
-            run.trace("model_call", {"prompt_chars": len(prompt), "loops": loops})
-            result = engine.reason(prompt, num_loops=loops)
-            raw = result.get("final_text", "") or ""
-            parsed = extract_first_json_object(raw)
-            run.trace("model_response", {
-                "raw_chars": len(raw),
-                "parsed": parsed if parsed else None,
-            })
-            run.set_output(raw)
-        run_ids.append(run.run_id)
-
-    return run_ids
+# Note: pre-wired wrappers for Mythos-internal automations
+# (run_customer_support_tickets, etc.) used to live here. They were
+# tightly coupled to `core.engine`, `core.kairos`, and the `automations/`
+# package and have been removed for v0.1.0. The generic MonitoredRun
+# context manager above is the public SDK; users build their own wrappers
+# around it (or use one of the LLM-specific adapters in
+# `agent_monitor.adapters.{openai,anthropic,langchain,...}`).

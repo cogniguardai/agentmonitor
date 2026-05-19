@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cogniguardai"
+version = "0.1.0"
+description = "AgentMonitor — flight recorder for AI agents. Records prompts, tool calls, files, cost, and latency. Local-first dashboard."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "CogniGuard AI", email = "hello@cogniguardai.com" },
+]
+keywords = [
+    "ai",
+    "agents",
+    "observability",
+    "llmops",
+    "monitoring",
+    "flight-recorder",
+    "openai",
+    "anthropic",
+    "langchain",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+]
+
+# Slim baseline. Anything heavier (torch, transformers, playwright) is an
+# opt-in extra so a clean `pip install cogniguardai` stays fast and small.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.0",
+    "httpx>=0.25",
+    "rich>=13.0",
+    "PyYAML>=6.0",
+    "pywebview>=5.0",
+]
+
+[project.optional-dependencies]
+# Machine-learning probes (LlamaGuard, transformers-based scoring, etc.).
+# These pull in PyTorch which is multi-hundred-MB; keep opt-in.
+ml = [
+    "torch>=2.1",
+    "transformers>=4.40",
+    "einops>=0.8",
+]
+
+# Browser-automation features (the live page-watching probe in /api/browser/*).
+# Playwright also needs system browser binaries; user must run
+# `playwright install chromium` once after installing this extra.
+browser = [
+    "playwright>=1.40",
+]
+
+# Convenience: install everything at once.
+all = [
+    "torch>=2.1",
+    "transformers>=4.40",
+    "einops>=0.8",
+    "playwright>=1.40",
+]
+
+# Tooling for contributors / release engineering.
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "build>=1.0",
+    "twine>=5.0",
+]
+
+[project.scripts]
+agentmonitor = "agent_monitor.desktop:main"
+
+[project.urls]
+Homepage      = "https://cogniguardai.com"
+Documentation = "https://github.com/cogniguardai/agentmonitor#readme"
+Repository    = "https://github.com/cogniguardai/agentmonitor"
+Issues        = "https://github.com/cogniguardai/agentmonitor/issues"
+Changelog     = "https://github.com/cogniguardai/agentmonitor/releases"
+
+# ---------------------------------------------------------------------------
+# Packaging configuration
+# ---------------------------------------------------------------------------
+
+[tool.setuptools.packages.find]
+include = ["agent_monitor*"]
+exclude = [
+    "tests*",
+    "examples*",
+    "core*",
+    "automations*",
+    "interp*",
+    "interp_real*",
+    "configs*",
+]
+
+[tool.setuptools.package-data]
+agent_monitor = [
+    "web/index.html",
+    "web/static/*",
+    "data/.gitkeep",
+]
+
+[tool.setuptools.exclude-package-data]
+# Keep these files in the source repo for Mythos's internal use, but do
+# NOT ship them in the public wheel — they either: (a) couple to private
+# Mythos automations (wrappers.py), (b) are dev-only screenshot helpers
+# (_take_screenshots.py, _verify_seed.py), or (c) are deferred Phase-2
+# modules whose endpoints return 503 in v0.1.0 (interp_bridge, memory,
+# nla_*, code_scan, classifiers, transformers_runtime, safety_llamaguard,
+# adapters/findings.py, adapters/sandbox*.py, adapters/sarif.py,
+# adapters/tournament.py).
+agent_monitor = [
+    "web/docs/screenshots/*",
+    "_take_screenshots.py",
+    "_verify_seed.py",
+    "wrappers.py",
+]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]  # long lines OK; we use line-length as a soft target.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
