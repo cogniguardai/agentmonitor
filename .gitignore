@@ -43,3 +43,10 @@ _tmp_*.txt
 # Frozen-app build artifacts
 *.exe
 agent-monitor.spec
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
