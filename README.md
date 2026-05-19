@@ -1,10 +1,10 @@
 # AgentMonitor
 
-[![Live](https://img.shields.io/badge/Live-cogniguardai.com-0e8a16?style=flat-square&logo=cloudflare&logoColor=white)](https://cogniguardai.com/) [![PyPI](https://img.shields.io/pypi/v/cogniguardai.svg?style=flat-square&label=PyPI&color=8b5cf6)](https://pypi.org/project/cogniguardai/) [![Status](https://img.shields.io/badge/Status-pre--release-orange?style=flat-square)](https://github.com/cogniguardai/agentmonitor#install)
+[![Live](https://img.shields.io/badge/Live-cogniguardai.com-0e8a16?style=flat-square&logo=cloudflare&logoColor=white)](https://cogniguardai.com/) [![PyPI](https://img.shields.io/pypi/v/cogniguardai.svg?style=flat-square&label=PyPI&color=8b5cf6)](https://pypi.org/project/cogniguardai/) [![Status](https://img.shields.io/badge/Status-live-0e8a16?style=flat-square)](https://github.com/cogniguardai/agentmonitor#install) [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 > *See what your AI agent actually did.*
 
-**Live at <https://cogniguardai.com/>** &mdash; marketing site is up; functional v0.1.0 ships soon.
+**Live at <https://cogniguardai.com/>** &mdash; **v0.1.0 is on PyPI:** `pip install cogniguardai`.
 
 **AgentMonitor** is a flight recorder for AI agents. It records every
 prompt, tool call, file touched and dollar spent &mdash; so when your agent
@@ -20,26 +20,29 @@ Made by [CogniGuard AI](https://cogniguardai.com/).
 
 ## Install
 
-> **Status:** the PyPI namespace [`cogniguardai`](https://pypi.org/project/cogniguardai/)
-> is reserved (v0.0.1 placeholder). The first functional release lands as
-> **v0.1.0**. Until then, the only working install is from source &mdash;
-> see _Run from source_ below.
-
-When v0.1.0 ships:
-
 ```bash
 pip install cogniguardai
-agentmonitor   # opens the dashboard at http://localhost:8765
+agentmonitor   # opens the dashboard at http://127.0.0.1:8765
 ```
 
-### Run from source (works today)
+The slim baseline is ~174&nbsp;KB on the wire and pulls only fastapi,
+uvicorn, pydantic, httpx, rich, PyYAML and pywebview &mdash; no torch,
+no transformers, no Playwright. Optional features ship as extras:
+
+```bash
+pip install 'cogniguardai[ml]'        # interp probes, NLA decoders, Llama Guard
+pip install 'cogniguardai[browser]'   # Playwright session controller
+pip install 'cogniguardai[all]'       # everything
+```
+
+### Run from source
 
 ```bash
 git clone https://github.com/cogniguardai/agentmonitor.git
 cd agentmonitor
 pip install -r requirements.txt
 python -m agent_monitor.run_server
-# then open http://localhost:8765
+# then open http://127.0.0.1:8765
 ```
 
 ## What it does
