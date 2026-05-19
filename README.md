@@ -1,6 +1,10 @@
 # AgentMonitor
 
+[![Live](https://img.shields.io/badge/Live-cogniguardai.com-0e8a16?style=flat-square&logo=cloudflare&logoColor=white)](https://cogniguardai.com/) [![PyPI](https://img.shields.io/pypi/v/cogniguardai.svg?style=flat-square&label=PyPI&color=8b5cf6)](https://pypi.org/project/cogniguardai/) [![Status](https://img.shields.io/badge/Status-pre--release-orange?style=flat-square)](https://github.com/cogniguardai/agentmonitor#install)
+
 > *See what your AI agent actually did.*
+
+**Live at <https://cogniguardai.com/>** &mdash; marketing site is up; functional v0.1.0 ships soon.
 
 **AgentMonitor** is a flight recorder for AI agents. It records every
 prompt, tool call, file touched and dollar spent &mdash; so when your agent
