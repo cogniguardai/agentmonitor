@@ -10,6 +10,9 @@ __pycache__/
 build/
 dist/
 *.spec
+# Whitelist the canonical PyInstaller spec used to build AgentMonitor.exe.
+# Generated specs from ad-hoc invocations stay ignored.
+!AgentMonitor.spec
 
 # Virtualenvs
 ai-env/
