@@ -20,6 +20,14 @@ Made by [CogniGuard AI](https://cogniguardai.com/).
 
 ## Install
 
+**Windows** (no Python required) &mdash; download
+[`AgentMonitor.exe`](https://github.com/cogniguardai/agentmonitor/releases/latest/download/AgentMonitor.exe)
+(20&nbsp;MB) from the [latest release](https://github.com/cogniguardai/agentmonitor/releases/latest)
+and double-click. First launch may show a SmartScreen warning
+(not yet code-signed); click *More info &rarr; Run anyway*.
+
+**Python** (any OS) &mdash;
+
 ```bash
 pip install cogniguardai
 agentmonitor   # opens the dashboard at http://127.0.0.1:8765
