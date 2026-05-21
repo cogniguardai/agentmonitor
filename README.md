@@ -4,7 +4,7 @@
 
 > *See what your AI agent actually did.*
 
-**Live at <https://cogniguardai.com/>** &mdash; **v0.1.0 is on PyPI:** `pip install cogniguardai`.
+**Live at <https://cogniguardai.com/>** &mdash; **v0.1.1 is on PyPI:** `pip install cogniguardai`.
 
 **AgentMonitor** is a flight recorder for AI agents. It records every
 prompt, tool call, file touched and dollar spent &mdash; so when your agent

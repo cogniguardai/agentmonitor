@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cogniguardai"
-version = "0.1.0"
+version = "0.1.1"
 description = "AgentMonitor — flight recorder for AI agents. Records prompts, tool calls, files, cost, and latency. Local-first dashboard."
 readme = "README.md"
 license = { text = "MIT" }

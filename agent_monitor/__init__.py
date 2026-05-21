@@ -26,7 +26,7 @@ Persistent data lives at:
     3. agent_monitor/data/                           (dev mode)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 import os
 import sys
