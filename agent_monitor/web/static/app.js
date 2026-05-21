@@ -1543,9 +1543,10 @@ loadScanObs = async function() {
 // =============================================================
 // v1.10 Welcome panel — default landing for the Flight-Recorder
 // positioning. If the local DB has no runs yet we render an inline
-// quick-start with `pip install agent-monitor` + a "Load demo agent"
-// button that ingests a small canned sandbox report so the user can
-// see the product working end-to-end without writing any code.
+// quick-start with `pip install cogniguardai` and a copy-pasteable
+// `MonitoredRun` snippet so the user can record their first run
+// without leaving the dashboard. (Sandbox-backed demo agent is
+// deferred until the external scanner panels ship.)
 // =============================================================
 function _humanAgo(iso) {
   if (!iso) return '';
@@ -1556,25 +1557,6 @@ function _humanAgo(iso) {
   if (s < 86400)  return `${Math.floor(s/3600)}h ago`;
   return `${Math.floor(s/86400)}d ago`;
 }
-
-// Tiny, schema-valid Cuckoo-style report we POST to
-// /api/scan/external/sandbox so the demo button actually exercises
-// the ingest pipeline (parser → DB → detonations panel).
-const _WELCOME_DEMO_REPORT = {
-  info: {id: 'demo-1', started: new Date().toISOString(), category: 'file'},
-  target: {file: {name: 'demo-sample.exe',
-    sha256: 'd3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0d3m0'}},
-  signatures: [
-    {name: 'persistence_registry_run', severity: 3,
-     description: 'Adds a Run key for persistence after reboot'},
-    {name: 'network_http_suspicious_ua', severity: 2,
-     description: 'HTTP request with a known malware user-agent'},
-    {name: 'crypto_currency_mining', severity: 3,
-     description: 'Connects to a known mining pool'},
-    {name: 'file_drop_temp_executable', severity: 2,
-     description: 'Drops an executable into %TEMP% and runs it'},
-  ],
-};
 
 async function loadWelcome() {
   const state = document.getElementById('welcome-state');
@@ -1621,45 +1603,17 @@ async function loadWelcome() {
         <div class="welcome-qs-title">No runs yet — let's record your first one.</div>
         <ol class="welcome-qs-steps">
           <li>Install:
-            <pre class="welcome-qs-code"><code>pip install agent-monitor</code></pre>
+            <pre class="welcome-qs-code"><code>pip install cogniguardai</code></pre>
           </li>
           <li>Wrap your agent call (works with OpenAI, Anthropic, LangChain, AutoGen, Ollama, …):
-            <pre class="welcome-qs-code"><code>from agent_monitor import monitor
-with monitor(agent="my-agent"):
+            <pre class="welcome-qs-code"><code>from agent_monitor.runner import MonitoredRun
+
+with MonitoredRun(agent_name="my-agent", input_text="hello"):
     run_your_agent()</code></pre>
           </li>
           <li>Refresh this page — your run will appear in <strong>Live View</strong> and <strong>Runs</strong>.</li>
         </ol>
-        <p class="muted welcome-qs-hint">Don't want to install anything yet? Click
-          <strong>Load a demo agent</strong> above to see what AgentMonitor
-          looks like with real data.</p>
       </div>`;
-  }
-}
-
-async function _welcomeLoadDemo(btn) {
-  if (!btn) return;
-  const orig = btn.innerHTML;
-  btn.disabled = true;
-  btn.textContent = 'Loading demo…';
-  try {
-    const body = {
-      root_path: 'demo/welcome',
-      report: _WELCOME_DEMO_REPORT,
-      label: 'welcome-demo',
-    };
-    const r = await api('/api/scan/external/sandbox', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    });
-    toast('good', 'Demo data loaded',
-      `${r.tool || 'sandbox'} · ${r.n_findings || 0} signatures ingested`);
-    showPanel('detonations');
-  } catch (e) {
-    toast('bad', 'Could not load demo', e.message || String(e));
-    btn.disabled = false;
-    btn.innerHTML = orig;
   }
 }
 
@@ -1677,11 +1631,12 @@ async function _welcomeLoadDemo(btn) {
           <div class="welcome-qs-title">Record your first agent run</div>
           <ol class="welcome-qs-steps">
             <li>Install:
-              <pre class="welcome-qs-code"><code>pip install agent-monitor</code></pre>
+              <pre class="welcome-qs-code"><code>pip install cogniguardai</code></pre>
             </li>
             <li>Wrap your agent call:
-              <pre class="welcome-qs-code"><code>from agent_monitor import monitor
-with monitor(agent="my-agent"):
+              <pre class="welcome-qs-code"><code>from agent_monitor.runner import MonitoredRun
+
+with MonitoredRun(agent_name="my-agent", input_text="hello"):
     run_your_agent()</code></pre>
             </li>
             <li>Refresh — your run will appear in <strong>Live View</strong>.</li>
@@ -1690,8 +1645,6 @@ with monitor(agent="my-agent"):
     }
     state && state.scrollIntoView({behavior: 'smooth', block: 'start'});
   });
-  const dm = document.getElementById('welcome-demo');
-  if (dm) dm.addEventListener('click', () => _welcomeLoadDemo(dm));
 })();
 
 
